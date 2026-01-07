@@ -75,8 +75,8 @@ faq_system = load_faq_system()
 # HEADER
 # ============================================
 
-st.title("💬 FAQ Assistant")
-st.markdown(f"*{len(faq_system.df)} perguntas disponíveis*")
+st.title("💬 FAQ Assistant com IA")
+st.markdown(f"*RAG com Gemini • {len(faq_system.df)} perguntas na base*")
 st.markdown("---")
 
 # ============================================
@@ -108,7 +108,27 @@ with st.sidebar:
         st.rerun()
 
     st.markdown("---")
-    st.caption("☁️ Powered by Google Cloud")
+
+    # Info sobre RAG
+    with st.expander("ℹ️ Como funciona"):
+        st.markdown("""
+**RAG (Retrieval Augmented Generation):**
+
+1. **Retrieval** 🔍
+   - Busca FAQs relevantes usando embeddings
+
+2. **Generation** 🤖
+   - Gemini gera resposta baseada nos FAQs
+   - Grounded em dados reais
+   - Prompt engineering aplicado
+
+3. **Output Filtering** ✅
+   - Filtra informações sensíveis
+   - Safety settings ativados
+        """)
+
+    st.markdown("---")
+    st.caption("☁️ Powered by Vertex AI + Gemini")
 
 # ============================================
 # CHAT PRINCIPAL
@@ -138,15 +158,24 @@ if prompt := st.chat_input("Digite sua pergunta..."):
 
     # Buscar resposta
     with st.chat_message("assistant"):
-        with st.spinner("Buscando..."):
+        with st.spinner("🤖 Processando com IA..."):
             try:
-                result = faq_system.ask(prompt)
+                # Usar RAG completo com LLM (Gemini)
+                result = faq_system.ask_with_llm(prompt)
 
                 if result['found']:
-                    resposta = result['resposta']
+                    # Resposta gerada pelo LLM
+                    resposta_gerada = result['resposta_gerada']
                     score = result['score']
 
-                    st.markdown(resposta)
+                    # Mostrar resposta gerada
+                    st.markdown(resposta_gerada)
+
+                    # Mostrar fonte (FAQ original) em expander
+                    with st.expander("📚 Ver FAQ original"):
+                        st.markdown(f"**Pergunta encontrada:** {result['pergunta_encontrada']}")
+                        st.markdown(f"**Resposta original:** {result['resposta_original']}")
+                        st.caption(f"✨ Resposta reformulada por IA (Gemini)")
 
                     # Mostrar confiança
                     if score >= 0.8:
@@ -159,11 +188,11 @@ if prompt := st.chat_input("Digite sua pergunta..."):
                     # Salvar no histórico
                     st.session_state.messages.append({
                         "role": "assistant",
-                        "content": resposta,
+                        "content": resposta_gerada,
                         "score": score
                     })
                 else:
-                    msg = "Desculpe, não encontrei uma resposta relevante para essa pergunta. 😕"
+                    msg = result.get('resposta_gerada', "Desculpe, não encontrei uma resposta relevante para essa pergunta. 😕")
                     st.markdown(msg)
                     st.session_state.messages.append({
                         "role": "assistant",
@@ -183,4 +212,4 @@ if prompt := st.chat_input("Digite sua pergunta..."):
 # ============================================
 
 st.markdown("---")
-st.caption("💡 Sistema FAQ com IA - Powered by Vertex AI")
+st.caption("🤖 RAG (Retrieval Augmented Generation) • Powered by Vertex AI + Gemini 1.5 Flash")

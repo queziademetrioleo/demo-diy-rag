@@ -23,6 +23,8 @@ from vertexai.language_models import TextEmbeddingModel, TextEmbeddingInput
 from loguru import logger
 from sklearn.metrics.pairwise import cosine_similarity
 import json
+import re
+from vertexai.generative_models import GenerativeModel, GenerationConfig
 
 
 class SimpleFAQSystem:
@@ -62,7 +64,18 @@ class SimpleFAQSystem:
         # Modelo de embeddings
         self.embedding_model = TextEmbeddingModel.from_pretrained("text-embedding-004")
 
-        logger.info("✅ Sistema FAQ inicializado!")
+        # Modelo LLM para geração (Gemini)
+        self.llm_model = GenerativeModel("gemini-1.5-flash-002")
+
+        # Configuração do LLM
+        self.generation_config = GenerationConfig(
+            temperature=0.2,  # Baixa temperatura para respostas mais consistentes
+            top_p=0.8,
+            top_k=40,
+            max_output_tokens=1024,
+        )
+
+        logger.info("✅ Sistema FAQ inicializado (com LLM)!")
 
     def load_csv(self, csv_path: str) -> pd.DataFrame:
         """
@@ -270,6 +283,199 @@ class SimpleFAQSystem:
             'confidence': best['confidence'],
             'found': True
         }
+
+    def ask_with_llm(self, query: str, use_chain_of_thought: bool = False) -> Dict:
+        """
+        Faz uma pergunta e retorna resposta GERADA pelo LLM (RAG completo).
+
+        Este método implementa RAG completo:
+        1. Retrieval: Busca FAQ mais relevante (embeddings)
+        2. Generation: LLM gera resposta baseada no FAQ encontrado
+
+        Args:
+            query: Pergunta do usuário
+            use_chain_of_thought: Se True, usa chain-of-thought prompting
+
+        Returns:
+            Dicionário com resposta gerada, score, etc
+        """
+        logger.info(f"🤖 Processando com LLM: '{query}'")
+
+        # ETAPA 1: RETRIEVAL - Buscar FAQ relevante
+        retrieval_results = self.search(query, top_k=3, threshold=0.5)
+
+        if not retrieval_results:
+            return {
+                'pergunta_usuario': query,
+                'pergunta_encontrada': None,
+                'resposta_original': None,
+                'resposta_gerada': "Desculpe, não encontrei informações relevantes sobre essa pergunta em nossa base de conhecimento.",
+                'score': 0.0,
+                'confidence': 'baixa',
+                'found': False,
+                'method': 'llm',
+                'grounded': False
+            }
+
+        # Pegar top 3 para contexto
+        context_faqs = retrieval_results[:3]
+
+        # ETAPA 2: GENERATION - Criar prompt e gerar resposta
+        prompt = self._create_prompt(
+            user_query=query,
+            context_faqs=context_faqs,
+            use_chain_of_thought=use_chain_of_thought
+        )
+
+        # Gerar resposta com LLM
+        generated_response = self._generate_with_gemini(prompt)
+
+        # ETAPA 3: OUTPUT FILTERING - Filtrar saída
+        filtered_response = self._filter_output(generated_response)
+
+        # Melhor match para referência
+        best_match = context_faqs[0]
+
+        return {
+            'pergunta_usuario': query,
+            'pergunta_encontrada': best_match['pergunta'],
+            'resposta_original': best_match['resposta'],
+            'resposta_gerada': filtered_response,
+            'score': best_match['score'],
+            'confidence': best_match['confidence'],
+            'found': True,
+            'method': 'llm',
+            'grounded': True,  # Resposta é grounded nos FAQs encontrados
+            'num_sources': len(context_faqs)
+        }
+
+    def _create_prompt(
+        self,
+        user_query: str,
+        context_faqs: List[Dict],
+        use_chain_of_thought: bool = False
+    ) -> str:
+        """
+        Cria prompt template para o LLM com grounding.
+
+        Implementa:
+        - Prompt engineering
+        - Grounding em FAQs reais
+        - Chain-of-thought (opcional)
+        """
+
+        # Montar contexto com FAQs encontrados
+        context_text = ""
+        for i, faq in enumerate(context_faqs, 1):
+            context_text += f"\n[FAQ {i}]\n"
+            context_text += f"Pergunta: {faq['pergunta']}\n"
+            context_text += f"Resposta: {faq['resposta']}\n"
+            context_text += f"Relevância: {faq['score']:.0%}\n"
+
+        if use_chain_of_thought:
+            # Chain-of-thought prompting
+            prompt = f"""Você é um assistente FAQ especializado. Responda à pergunta do usuário seguindo este processo:
+
+1. ANÁLISE: Analise a pergunta do usuário e identifique qual FAQ é mais relevante.
+2. RACIOCÍNIO: Explique brevemente por que essa FAQ responde a pergunta.
+3. RESPOSTA: Forneça a resposta final de forma clara e direta.
+
+CONTEXTO (FAQs encontrados em nossa base):
+{context_text}
+
+PERGUNTA DO USUÁRIO:
+{user_query}
+
+INSTRUÇÕES IMPORTANTES:
+- Use APENAS informações dos FAQs acima
+- Se a pergunta não puder ser respondida com os FAQs, diga claramente
+- Seja conciso e direto
+- Mantenha tom profissional e prestativo
+
+RESPOSTA (siga o formato 1-2-3):"""
+
+        else:
+            # Prompt padrão (mais direto)
+            prompt = f"""Você é um assistente FAQ especializado. Sua função é responder perguntas usando APENAS as informações da base de conhecimento fornecida.
+
+BASE DE CONHECIMENTO (FAQs relevantes):
+{context_text}
+
+PERGUNTA DO USUÁRIO:
+{user_query}
+
+INSTRUÇÕES:
+- Use APENAS as informações dos FAQs acima
+- Se os FAQs não respondem a pergunta, diga: "Não encontrei informações específicas sobre isso em nossa base de conhecimento"
+- Seja claro, direto e prestativo
+- Reformule a resposta do FAQ de forma natural, sem copiar exatamente
+
+RESPOSTA:"""
+
+        return prompt
+
+    def _generate_with_gemini(self, prompt: str) -> str:
+        """
+        Gera resposta usando Gemini LLM.
+
+        Args:
+            prompt: Prompt formatado
+
+        Returns:
+            Resposta gerada pelo LLM
+        """
+        try:
+            response = self.llm_model.generate_content(
+                prompt,
+                generation_config=self.generation_config,
+                safety_settings={
+                    "HARASSMENT": "BLOCK_MEDIUM_AND_ABOVE",
+                    "HATE_SPEECH": "BLOCK_MEDIUM_AND_ABOVE",
+                    "SEXUALLY_EXPLICIT": "BLOCK_MEDIUM_AND_ABOVE",
+                    "DANGEROUS_CONTENT": "BLOCK_MEDIUM_AND_ABOVE",
+                }
+            )
+
+            generated_text = response.text
+
+            logger.info("✅ Resposta gerada pelo LLM")
+
+            return generated_text
+
+        except Exception as e:
+            logger.error(f"❌ Erro ao gerar com LLM: {e}")
+            return "Desculpe, ocorreu um erro ao processar sua pergunta. Por favor, tente novamente."
+
+    def _filter_output(self, text: str) -> str:
+        """
+        Filtra output para remover conteúdo potencialmente problemático.
+
+        Implementa output filtering básico:
+        - Remove informações sensíveis (emails, telefones, etc)
+        - Remove linguagem inapropriada
+        - Limita tamanho
+        """
+
+        # Remover emails
+        text = re.sub(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', '[EMAIL_REMOVIDO]', text)
+
+        # Remover números de telefone (formato BR)
+        text = re.sub(r'\(?\d{2}\)?\s?\d{4,5}-?\d{4}', '[TELEFONE_REMOVIDO]', text)
+
+        # Remover CPFs
+        text = re.sub(r'\d{3}\.\d{3}\.\d{3}-\d{2}', '[CPF_REMOVIDO]', text)
+
+        # Limitar tamanho
+        max_chars = 2000
+        if len(text) > max_chars:
+            text = text[:max_chars] + "... [resposta truncada]"
+
+        # Lista de palavras proibidas (exemplo básico)
+        forbidden_words = ['[palavra_proibida_exemplo]']  # Adicione conforme necessário
+        for word in forbidden_words:
+            text = text.replace(word, '[CONTEÚDO_FILTRADO]')
+
+        return text.strip()
 
     def _score_to_confidence(self, score: float) -> str:
         """Converte score numérico em texto."""
