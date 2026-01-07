@@ -56,16 +56,7 @@ Retorna: "Vá em Configurações > Segurança..."
 2. **Projeto no Google Cloud**
    - Se não tem: https://console.cloud.google.com/projectcreate
    - Criar projeto novo (ex: "meu-projeto-faq")
-3. **Navegador** (Chrome, Firefox, Edge)
-4. **10 minutos livres**
-
-### Você NÃO Precisa:
-
-- ❌ Instalar nada no seu computador
-- ❌ Saber programar
-- ❌ Ter cartão de crédito (usaremos créditos gratuitos)
-- ❌ Conhecimento avançado de IA
-
+   
 **Tudo roda no navegador!** ☁️
 
 ---
