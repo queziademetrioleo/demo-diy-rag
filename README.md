@@ -97,7 +97,15 @@ demo-diy-rag/
 - Billing habilitado
 - APIs necessárias habilitadas (instruções abaixo)
 
-### 2. Ferramentas Locais
+### 2. Ambiente de Execução
+
+**Opção A: Cloud Shell (RECOMENDADO - Mais Fácil!)**
+- ✅ Já vem com tudo instalado: Python 3.9+, pip, git, gcloud CLI
+- ✅ Acesso direto pelo navegador (ícone ">_" no Console)
+- ✅ Não precisa instalar nada no seu computador
+- ✅ Já vem autenticado no seu projeto
+
+**Opção B: Ambiente Local (Opcional)**
 - Python 3.9 ou superior
 - pip (gerenciador de pacotes Python)
 - Git
@@ -113,10 +121,8 @@ demo-diy-rag/
 
 #### 1.1 Criar/Selecionar Projeto
 ```bash
-# Instalar gcloud CLI se ainda não tiver
-# https://cloud.google.com/sdk/docs/install
-
-# Login no Google Cloud
+# Se estiver usando Cloud Shell, pule para o próximo comando
+# Se estiver local, faça login primeiro:
 gcloud auth login
 
 # Criar novo projeto (ou usar existente)
