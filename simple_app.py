@@ -34,11 +34,17 @@ st.set_page_config(
 # CARREGAR SISTEMA AUTOMATICAMENTE (CACHE)
 # ============================================
 
+# Versão do código (incrementar quando atualizar simple_faq_rag.py)
+CODE_VERSION = "2.0.0-llm"
+
 @st.cache_resource(show_spinner="🚀 Carregando FAQ do Cloud Storage...")
-def load_faq_system():
+def load_faq_system(_version):
     """
     Carrega o sistema FAQ automaticamente do Cloud Storage.
     Usa cache para não recarregar toda vez.
+
+    Args:
+        _version: Versão do código (força reload quando muda)
     """
     project_id = os.getenv("PROJECT_ID")
     bucket_name = os.getenv("BUCKET_NAME")
@@ -69,7 +75,8 @@ def load_faq_system():
     return faq
 
 # Carregar sistema (só executa 1 vez graças ao cache)
-faq_system = load_faq_system()
+# Passa CODE_VERSION para forçar reload quando código muda
+faq_system = load_faq_system(CODE_VERSION)
 
 # ============================================
 # HEADER
@@ -105,6 +112,11 @@ with st.sidebar:
     # Botão para limpar conversa
     if st.button("🗑️ Limpar Conversa"):
         st.session_state.messages = []
+        st.rerun()
+
+    # Botão para recarregar sistema (limpar cache)
+    if st.button("🔄 Recarregar Sistema", help="Limpa cache e recarrega código atualizado"):
+        st.cache_resource.clear()
         st.rerun()
 
     st.markdown("---")
