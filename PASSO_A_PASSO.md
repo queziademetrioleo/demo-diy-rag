@@ -339,18 +339,78 @@ seu-projeto-data/
 
 ---
 
-### **Passo 4.3: Enviar CSV de Exemplo**
+### **Passo 4.3: Enviar CSV para o Bucket**
 
-Vamos enviar o arquivo de exemplo (25 perguntas) para o bucket:
+Agora você tem **2 opções**:
+- **Opção A:** Usar o CSV de exemplo (25 perguntas já incluídas)
+- **Opção B:** Enviar SEU PRÓPRIO CSV do computador
+
+---
+
+#### **OPÇÃO A: Usar CSV de Exemplo (Rápido!)**
+
+O repositório já vem com um arquivo pronto. Vamos só copiar para o bucket:
 
 ```bash
-# Upload do CSV
+# Copiar CSV de exemplo para o bucket
 gsutil cp data/faq_example.csv gs://$(gcloud config get-value project)-data/raw_data/
 
 echo "✅ CSV enviado!"
 ```
 
-**Verificar se subiu:**
+**Pule para "Verificar Upload" abaixo** ⬇️
+
+---
+
+#### **OPÇÃO B: Enviar SEU CSV do Computador**
+
+Se você tem seu próprio arquivo CSV, siga estes passos:
+
+**Passo 1: Fazer Upload para Cloud Shell**
+
+1. No Cloud Shell, procure o **menu ⋮** (três pontinhos) no canto superior direito
+2. Clique em **"Upload"**
+3. Clique em **"Choose Files"**
+4. Selecione seu arquivo CSV do computador
+5. Aguarde aparecer: **"Upload completed"**
+
+**Exemplo visual:**
+```
+Cloud Shell → Menu ⋮ → Upload → Choose Files → Selecionar CSV
+```
+
+**Passo 2: Verificar que o arquivo subiu**
+
+```bash
+# Listar arquivos no diretório home
+ls ~/*.csv
+```
+
+**Deve mostrar algo como:**
+```
+/home/seu_usuario/meu_arquivo.csv
+```
+
+**Passo 3: Copiar para o Bucket**
+
+```bash
+# Substitua "meu_arquivo.csv" pelo nome real do seu arquivo
+gsutil cp ~/meu_arquivo.csv gs://$(gcloud config get-value project)-data/raw_data/
+
+echo "✅ CSV copiado para o bucket!"
+```
+
+**Exemplo:**
+```bash
+# Se seu arquivo se chama "faq_loja.csv"
+gsutil cp ~/faq_loja.csv gs://$(gcloud config get-value project)-data/raw_data/
+```
+
+---
+
+#### **Verificar Upload (Ambas Opções)**
+
+Confirme que o arquivo está no bucket:
 
 ```bash
 gsutil ls gs://$(gcloud config get-value project)-data/raw_data/
@@ -358,10 +418,14 @@ gsutil ls gs://$(gcloud config get-value project)-data/raw_data/
 
 **Deve mostrar:**
 ```
-gs://seu-projeto-data/raw_data/faq_example.csv
+gs://teste-de-big-query-472216-data/raw_data/faq_example.csv
+# OU
+gs://teste-de-big-query-472216-data/raw_data/seu_arquivo.csv
 ```
 
 ✅ **CSV no Cloud Storage!**
+
+**📝 Lembre-se:** Se você usou seu próprio CSV, precisa atualizar o arquivo `.env` na FASE 5 com o nome correto!
 
 ---
 
