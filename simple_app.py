@@ -1,6 +1,6 @@
 """
 🤖 Chat App SIMPLES - Sistema FAQ
-Interface web que carrega TUDO do Cloud Storage automaticamente
+Carrega automaticamente do Cloud Storage - PRONTO PARA USO!
 """
 
 import streamlit as st
@@ -30,41 +30,24 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("💬 Sistema FAQ Simples")
-st.markdown("*Carrega automaticamente do Cloud Storage*")
-st.markdown("---")
-
 # ============================================
-# SESSION STATE
+# CARREGAR SISTEMA AUTOMATICAMENTE (CACHE)
 # ============================================
 
-if 'faq_system' not in st.session_state:
-    st.session_state.faq_system = None
-
-if 'messages' not in st.session_state:
-    st.session_state.messages = []
-
-# ============================================
-# FUNÇÕES DE CLOUD STORAGE
-# ============================================
-
-def download_from_bucket(bucket_name: str, blob_path: str) -> str:
-    """Baixa arquivo do bucket para arquivo temporário"""
-    storage_client = storage.Client()
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(blob_path)
-
-    # Criar arquivo temporário
-    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.csv')
-    blob.download_to_filename(temp_file.name)
-
-    return temp_file.name
-
-def load_from_bucket_processed(bucket_name: str, project_id: str):
+@st.cache_resource(show_spinner="🚀 Carregando FAQ do Cloud Storage...")
+def load_faq_system():
     """
-    Carrega base de conhecimento JÁ PROCESSADA do bucket.
-    Muito mais rápido que processar do zero!
+    Carrega o sistema FAQ automaticamente do Cloud Storage.
+    Usa cache para não recarregar toda vez.
     """
+    project_id = os.getenv("PROJECT_ID")
+    bucket_name = os.getenv("BUCKET_NAME")
+
+    if not project_id or not bucket_name:
+        st.error("❌ Configure .env com PROJECT_ID e BUCKET_NAME")
+        st.stop()
+
+    # Inicializar Cloud Storage
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
 
@@ -80,90 +63,52 @@ def load_from_bucket_processed(bucket_name: str, project_id: str):
 
     # Criar sistema
     faq = SimpleFAQSystem(project_id=project_id)
-
-    # Carregar dados processados
     faq.load_csv(temp_metadata.name)
     faq.embeddings = np.load(temp_embeddings.name)
 
     return faq
 
+# Carregar sistema (só executa 1 vez graças ao cache)
+faq_system = load_faq_system()
+
 # ============================================
-# SIDEBAR - CONFIGURAÇÃO
+# HEADER
+# ============================================
+
+st.title("💬 FAQ Assistant")
+st.markdown(f"*{len(faq_system.df)} perguntas disponíveis*")
+st.markdown("---")
+
+# ============================================
+# SESSION STATE
+# ============================================
+
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
+
+# ============================================
+# SIDEBAR - INFO
 # ============================================
 
 with st.sidebar:
-    st.header("⚙️ Configuração")
+    st.header("ℹ️ Informações")
 
-    # Inputs (do .env)
-    project_id = st.text_input(
-        "Project ID",
-        value=os.getenv("PROJECT_ID", ""),
-        help="ID do projeto Google Cloud"
-    )
+    st.success("🟢 Sistema Online")
+    st.metric("Perguntas disponíveis", len(faq_system.df))
 
-    bucket_name = st.text_input(
-        "Bucket Name",
-        value=os.getenv("BUCKET_NAME", ""),
-        help="Nome do bucket do Cloud Storage"
-    )
+    st.markdown("---")
+    st.caption("**Project ID:**")
+    st.code(os.getenv("PROJECT_ID", "N/A"))
 
     st.markdown("---")
 
-    # Opções de carregamento
-    load_option = st.radio(
-        "Modo de carregamento:",
-        ["🚀 Base Processada (Rápido)", "📄 CSV do Zero (Lento)"],
-        help="Base processada usa embeddings já salvos"
-    )
+    # Botão para limpar conversa
+    if st.button("🗑️ Limpar Conversa"):
+        st.session_state.messages = []
+        st.rerun()
 
     st.markdown("---")
-
-    # Botão de inicialização
-    if st.button("🚀 Inicializar Sistema", type="primary"):
-        if not project_id or not bucket_name:
-            st.error("❌ Configure PROJECT_ID e BUCKET_NAME!")
-            st.stop()
-
-        try:
-            if load_option == "🚀 Base Processada (Rápido)":
-                with st.spinner("📥 Baixando base processada do bucket..."):
-                    faq = load_from_bucket_processed(bucket_name, project_id)
-
-                st.success(f"✅ {len(faq.df)} perguntas carregadas do bucket!")
-                st.info("⚡ Base de conhecimento já estava processada!")
-
-            else:  # CSV do zero
-                with st.spinner("📥 Baixando CSV do bucket..."):
-                    raw_data_path = os.getenv("RAW_DATA_PATH", "raw_data/faq_demo.csv")
-                    csv_file = download_from_bucket(bucket_name, raw_data_path)
-
-                with st.spinner("🧠 Criando sistema..."):
-                    faq = SimpleFAQSystem(project_id=project_id)
-                    faq.load_csv(csv_file)
-
-                st.success(f"✅ {len(faq.df)} perguntas carregadas")
-
-                with st.spinner("⏳ Criando embeddings (2-3 min)..."):
-                    faq.create_knowledge_base()
-
-                st.success("✅ Embeddings criados!")
-
-            # Salvar na sessão
-            st.session_state.faq_system = faq
-            st.balloons()
-
-        except Exception as e:
-            st.error(f"❌ Erro: {e}")
-            st.session_state.faq_system = None
-
-    # Status
-    st.markdown("---")
-    if st.session_state.faq_system is not None:
-        st.success("🟢 Sistema Online")
-        st.info(f"📊 {len(st.session_state.faq_system.df)} perguntas")
-    else:
-        st.warning("🔴 Sistema Offline")
-        st.info("👆 Clique em 'Inicializar'")
+    st.caption("☁️ Powered by Google Cloud")
 
 # ============================================
 # CHAT PRINCIPAL
@@ -184,10 +129,6 @@ for msg in st.session_state.messages:
 
 # Input do usuário
 if prompt := st.chat_input("Digite sua pergunta..."):
-    # Verificar se sistema está inicializado
-    if st.session_state.faq_system is None:
-        st.error("⚠️ Sistema não inicializado! Use o botão na sidebar.")
-        st.stop()
 
     # Adicionar mensagem do usuário
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -199,7 +140,7 @@ if prompt := st.chat_input("Digite sua pergunta..."):
     with st.chat_message("assistant"):
         with st.spinner("Buscando..."):
             try:
-                result = st.session_state.faq_system.ask(prompt)
+                result = faq_system.ask(prompt)
 
                 if result['found']:
                     resposta = result['resposta']
@@ -222,7 +163,7 @@ if prompt := st.chat_input("Digite sua pergunta..."):
                         "score": score
                     })
                 else:
-                    msg = "Desculpe, não encontrei uma resposta relevante. 😕"
+                    msg = "Desculpe, não encontrei uma resposta relevante para essa pergunta. 😕"
                     st.markdown(msg)
                     st.session_state.messages.append({
                         "role": "assistant",
@@ -230,7 +171,7 @@ if prompt := st.chat_input("Digite sua pergunta..."):
                     })
 
             except Exception as e:
-                error_msg = f"❌ Erro: {e}"
+                error_msg = f"❌ Erro ao buscar resposta: {e}"
                 st.error(error_msg)
                 st.session_state.messages.append({
                     "role": "assistant",
@@ -242,4 +183,4 @@ if prompt := st.chat_input("Digite sua pergunta..."):
 # ============================================
 
 st.markdown("---")
-st.caption("☁️ Powered by Google Cloud Storage + Vertex AI")
+st.caption("💡 Sistema FAQ com IA - Powered by Vertex AI")
