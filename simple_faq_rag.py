@@ -68,7 +68,8 @@ class SimpleFAQSystem:
         """
         Carrega CSV com perguntas e respostas.
 
-        O CSV deve ter as colunas: 'pergunta' e 'resposta'
+        O CSV pode ter colunas em português ('pergunta'/'resposta')
+        ou inglês ('Questions'/'Answers')
 
         Args:
             csv_path: Caminho para o arquivo CSV
@@ -80,15 +81,39 @@ class SimpleFAQSystem:
 
         df = pd.read_csv(csv_path)
 
-        # Validar colunas
-        required_cols = ['pergunta', 'resposta']
-        missing = [col for col in required_cols if col not in df.columns]
+        # Mapear colunas (aceita português ou inglês)
+        column_mapping = {}
 
-        if missing:
+        # Detectar coluna de perguntas
+        if 'Questions' in df.columns:
+            column_mapping['Questions'] = 'pergunta'
+        elif 'Question' in df.columns:
+            column_mapping['Question'] = 'pergunta'
+        elif 'pergunta' in df.columns:
+            pass  # já está correto
+        else:
             raise ValueError(
-                f"CSV deve ter colunas 'pergunta' e 'resposta'. "
-                f"Faltando: {missing}"
+                f"CSV deve ter coluna 'Questions', 'Question' ou 'pergunta'. "
+                f"Colunas encontradas: {list(df.columns)}"
             )
+
+        # Detectar coluna de respostas
+        if 'Answers' in df.columns:
+            column_mapping['Answers'] = 'resposta'
+        elif 'Answer' in df.columns:
+            column_mapping['Answer'] = 'resposta'
+        elif 'resposta' in df.columns:
+            pass  # já está correto
+        else:
+            raise ValueError(
+                f"CSV deve ter coluna 'Answers', 'Answer' ou 'resposta'. "
+                f"Colunas encontradas: {list(df.columns)}"
+            )
+
+        # Renomear colunas se necessário
+        if column_mapping:
+            df = df.rename(columns=column_mapping)
+            logger.info(f"✅ Colunas mapeadas: {column_mapping}")
 
         # Remover linhas vazias
         df = df.dropna(subset=['pergunta', 'resposta'])
