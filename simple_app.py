@@ -1,279 +1,171 @@
 """
 🤖 Chat App SIMPLES - Sistema FAQ
-
-Interface web simplificada para testar o sistema FAQ.
-Sem complexidade! Fácil de entender e usar.
+Interface web para testar o sistema FAQ
 """
 
 import streamlit as st
 import sys
 from pathlib import Path
 import os
-import time
 
+# Adicionar diretório ao path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from dotenv import load_dotenv
 from simple_faq_rag import SimpleFAQSystem
 
-# Configuração da página
+# ============================================
+# CONFIGURAÇÃO DA PÁGINA
+# ============================================
+
 st.set_page_config(
-    page_title="FAQ Assistant - Simples",
+    page_title="FAQ Assistant",
     page_icon="💬",
-    layout="wide"
+    layout="centered"
 )
 
-# CSS simples
-st.markdown("""
-<style>
-    .user-message {
-        background-color: #e3f2fd;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-    }
-    .bot-message {
-        background-color: #f5f5f5;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-    }
-    .confidence-high { color: #4caf50; font-weight: bold; }
-    .confidence-medium { color: #ff9800; font-weight: bold; }
-    .confidence-low { color: #f44336; font-weight: bold; }
-</style>
-""", unsafe_allow_html=True)
+st.title("💬 Sistema FAQ Simples")
+st.markdown("---")
 
+# ============================================
+# SESSION STATE
+# ============================================
 
-def init_session_state():
-    """Inicializa variáveis de sessão."""
-    if 'messages' not in st.session_state:
-        st.session_state.messages = []
+if 'faq_system' not in st.session_state:
+    st.session_state.faq_system = None
 
-    if 'faq_system' not in st.session_state:
-        st.session_state.faq_system = None
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
 
-    if 'initialized' not in st.session_state:
-        st.session_state.initialized = False
+# ============================================
+# SIDEBAR - CONFIGURAÇÃO
+# ============================================
 
-    if 'total_queries' not in st.session_state:
-        st.session_state.total_queries = 0
+with st.sidebar:
+    st.header("⚙️ Configuração")
 
+    # Inputs
+    project_id = st.text_input(
+        "Project ID",
+        value=os.getenv("PROJECT_ID", "teste-de-big-query-472216"),
+        help="ID do projeto Google Cloud"
+    )
 
-def initialize_system(project_id: str, csv_path: str):
-    """Inicializa o sistema FAQ."""
-    try:
-        with st.spinner("🔄 Inicializando sistema..."):
-            # Criar sistema
-            faq = SimpleFAQSystem(project_id=project_id)
+    csv_path = st.text_input(
+        "Caminho do CSV",
+        value="data/faq_example.csv",
+        help="Caminho para o arquivo CSV com perguntas/respostas"
+    )
 
-            # Carregar CSV
-            faq.load_csv(csv_path)
+    st.markdown("---")
 
-            # Criar base de conhecimento
-            st.info("⏳ Criando base de conhecimento... (1-2 minutos)")
-            faq.create_knowledge_base()
-
-            st.success("✅ Sistema pronto!")
-            return faq
-
-    except Exception as e:
-        st.error(f"❌ Erro: {e}")
-        return None
-
-
-def display_message(role: str, content: str, metadata: dict = None):
-    """Exibe mensagem no chat."""
-
-    if role == "user":
-        st.markdown(f"""
-        <div class="user-message">
-            <strong>👤 Você:</strong><br>
-            {content}
-        </div>
-        """, unsafe_allow_html=True)
-
-    else:  # assistant
-        confidence_class = f"confidence-{metadata.get('confidence', 'low').replace(' ', '-')}"
-
-        st.markdown(f"""
-        <div class="bot-message">
-            <strong>🤖 Assistente:</strong><br>
-            {content}
-        </div>
-        """, unsafe_allow_html=True)
-
-        if metadata and metadata.get('found'):
-            with st.expander("📊 Detalhes da resposta", expanded=False):
-                st.write(f"**Confiança:** {metadata.get('confidence', 'N/A')}")
-                st.write(f"**Score:** {metadata.get('score', 0):.1%}")
-                st.write(f"**Pergunta original:** {metadata.get('pergunta_encontrada', 'N/A')}")
-
-
-def main():
-    """Função principal do app."""
-
-    load_dotenv()
-    init_session_state()
-
-    # Header
-    st.title("💬 FAQ Assistant - Versão Simples")
-    st.markdown("Faça perguntas e receba respostas da base de conhecimento!")
-
-    # Sidebar
-    with st.sidebar:
-        st.header("⚙️ Configuração")
-
-        # Configurações
-        project_id = st.text_input(
-            "Project ID",
-            value=os.getenv("PROJECT_ID", ""),
-            help="ID do projeto Google Cloud"
-        )
-
-        csv_path = st.text_input(
-            "Caminho do CSV",
-            value="data/faq_example.csv",
-            help="Caminho para o arquivo CSV com perguntas/respostas"
-        )
-
-        st.divider()
-
-        # Botão inicializar
-        if st.button("🚀 Inicializar Sistema", type="primary"):
-            if not project_id:
-                st.error("⚠️ Preencha o Project ID")
-            elif not Path(csv_path).exists():
-                st.error(f"⚠️ CSV não encontrado: {csv_path}")
-            else:
-                st.session_state.faq_system = initialize_system(project_id, csv_path)
-                if st.session_state.faq_system:
-                    st.session_state.initialized = True
-                    st.rerun()
-
-        # Status
-        st.divider()
-        st.subheader("📊 Status")
-
-        if st.session_state.initialized:
-            st.success("✅ Sistema Online")
-            st.metric("Perguntas Feitas", st.session_state.total_queries)
-
-            if st.session_state.faq_system:
-                stats = st.session_state.faq_system.get_stats()
-                st.metric("Base de Dados", f"{stats['total_perguntas']} perguntas")
-        else:
-            st.warning("⚠️ Sistema Offline")
-            st.info("👆 Clique em 'Inicializar Sistema'")
-
-        # Exemplos
-        st.divider()
-        st.subheader("💡 Exemplos")
-        st.markdown("""
-        - Como redefinir senha?
-        - Qual o prazo de entrega?
-        - Vocês aceitam PIX?
-        - Como rastrear pedido?
-        """)
-
-        # Limpar
-        if st.button("🗑️ Limpar Chat"):
-            st.session_state.messages = []
-            st.session_state.total_queries = 0
-            st.rerun()
-
-    # Área principal
-    if not st.session_state.initialized:
-        st.info("ℹ️ Configure e inicialize o sistema na barra lateral")
-
-        with st.expander("📖 Como usar", expanded=True):
-            st.markdown("""
-            ### Passo a Passo:
-
-            1. **Configure o Project ID** na barra lateral
-            2. **Verifique o caminho do CSV** (padrão já incluso!)
-            3. **Clique em "Inicializar Sistema"**
-            4. **Aguarde** a criação da base (1-2 minutos)
-            5. **Comece a perguntar!**
-
-            ### Formato do CSV:
-
-            Seu CSV deve ter duas colunas:
-            - `pergunta`: A pergunta
-            - `resposta`: A resposta correspondente
-
-            Exemplo incluído em: `data/faq_example.csv`
-            """)
-
-    else:
-        # Container de mensagens
-        messages_container = st.container()
-
-        with messages_container:
-            for message in st.session_state.messages:
-                display_message(
-                    role=message["role"],
-                    content=message["content"],
-                    metadata=message.get("metadata")
-                )
-
-        # Input
-        st.divider()
-
-        question = st.chat_input("Digite sua pergunta...")
-
-        if question:
-            # Adicionar pergunta do usuário
-            st.session_state.messages.append({
-                "role": "user",
-                "content": question
-            })
-
-            # Exibir pergunta
-            with messages_container:
-                display_message("user", question)
-
-            # Processar
+    # Botão de inicialização
+    if st.button("🚀 Inicializar Sistema", type="primary"):
+        with st.spinner("Inicializando sistema..."):
             try:
-                with st.spinner("🤔 Pensando..."):
-                    start_time = time.time()
+                # Criar sistema
+                faq = SimpleFAQSystem(project_id=project_id)
 
-                    result = st.session_state.faq_system.ask(question)
+                # Carregar CSV
+                faq.load_csv(csv_path)
+                st.success(f"✅ {len(faq.df)} perguntas carregadas")
 
-                    elapsed = time.time() - start_time
+                # Criar base de conhecimento
+                with st.spinner("Criando base de conhecimento (embeddings)..."):
+                    faq.create_knowledge_base()
 
-                # Adicionar resposta
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": result['resposta'],
-                    "metadata": result
-                })
-
-                # Incrementar contador
-                st.session_state.total_queries += 1
-
-                # Exibir resposta
-                with messages_container:
-                    display_message(
-                        "assistant",
-                        result['resposta'],
-                        metadata=result
-                    )
-
-                # Métricas
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("⏱️ Tempo", f"{elapsed:.2f}s")
-                with col2:
-                    st.metric("🎯 Confiança", result.get('confidence', 'N/A'))
-                with col3:
-                    st.metric("📊 Score", f"{result.get('score', 0):.0%}")
-
-                st.rerun()
+                # Salvar na sessão
+                st.session_state.faq_system = faq
+                st.success("✅ Sistema pronto!")
+                st.balloons()
 
             except Exception as e:
                 st.error(f"❌ Erro: {e}")
+                st.session_state.faq_system = None
 
+    # Status
+    st.markdown("---")
+    if st.session_state.faq_system is not None:
+        st.success("🟢 Sistema Online")
+        st.info(f"📊 {len(st.session_state.faq_system.df)} perguntas disponíveis")
+    else:
+        st.warning("🔴 Sistema Offline")
+        st.info("👆 Clique em 'Inicializar Sistema'")
 
-if __name__ == "__main__":
-    main()
+# ============================================
+# CHAT PRINCIPAL
+# ============================================
+
+# Mostrar histórico
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+        if "score" in msg:
+            score = msg["score"]
+            if score >= 0.8:
+                st.markdown(f"**Confiança:** :green[{score:.0%}]")
+            elif score >= 0.6:
+                st.markdown(f"**Confiança:** :orange[{score:.0%}]")
+            else:
+                st.markdown(f"**Confiança:** :red[{score:.0%}]")
+
+# Input do usuário
+if prompt := st.chat_input("Digite sua pergunta..."):
+    # Verificar se sistema está inicializado
+    if st.session_state.faq_system is None:
+        st.error("⚠️ Sistema não inicializado! Use o botão na sidebar.")
+        st.stop()
+
+    # Adicionar mensagem do usuário
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # Buscar resposta
+    with st.chat_message("assistant"):
+        with st.spinner("Buscando..."):
+            try:
+                result = st.session_state.faq_system.ask(prompt)
+
+                if result['found']:
+                    resposta = result['resposta']
+                    score = result['score']
+
+                    st.markdown(resposta)
+
+                    # Mostrar confiança
+                    if score >= 0.8:
+                        st.markdown(f"**Confiança:** :green[{score:.0%}]")
+                    elif score >= 0.6:
+                        st.markdown(f"**Confiança:** :orange[{score:.0%}]")
+                    else:
+                        st.markdown(f"**Confiança:** :red[{score:.0%}]")
+
+                    # Salvar no histórico
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": resposta,
+                        "score": score
+                    })
+                else:
+                    msg = "Desculpe, não encontrei uma resposta relevante para sua pergunta. 😕"
+                    st.markdown(msg)
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": msg
+                    })
+
+            except Exception as e:
+                error_msg = f"❌ Erro ao buscar resposta: {e}"
+                st.error(error_msg)
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": error_msg
+                })
+
+# ============================================
+# FOOTER
+# ============================================
+
+st.markdown("---")
+st.caption("💡 Sistema FAQ com IA - Vertex AI Embeddings")
