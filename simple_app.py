@@ -1,279 +1,227 @@
 """
 🤖 Chat App SIMPLES - Sistema FAQ
-
-Interface web simplificada para testar o sistema FAQ.
-Sem complexidade! Fácil de entender e usar.
+Carrega automaticamente do Cloud Storage - PRONTO PARA USO!
 """
 
 import streamlit as st
 import sys
 from pathlib import Path
 import os
-import time
+import tempfile
+import numpy as np
+from google.cloud import storage
+from dotenv import load_dotenv
 
+# Carregar .env
+load_dotenv()
+
+# Adicionar diretório ao path
 sys.path.insert(0, str(Path(__file__).parent))
 
-from dotenv import load_dotenv
 from simple_faq_rag import SimpleFAQSystem
 
-# Configuração da página
+# ============================================
+# CONFIGURAÇÃO DA PÁGINA
+# ============================================
+
 st.set_page_config(
-    page_title="FAQ Assistant - Simples",
+    page_title="FAQ Assistant",
     page_icon="💬",
-    layout="wide"
+    layout="centered"
 )
 
-# CSS simples
-st.markdown("""
-<style>
-    .user-message {
-        background-color: #e3f2fd;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-    }
-    .bot-message {
-        background-color: #f5f5f5;
-        padding: 1rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
-    }
-    .confidence-high { color: #4caf50; font-weight: bold; }
-    .confidence-medium { color: #ff9800; font-weight: bold; }
-    .confidence-low { color: #f44336; font-weight: bold; }
-</style>
-""", unsafe_allow_html=True)
+# ============================================
+# CARREGAR SISTEMA AUTOMATICAMENTE (CACHE)
+# ============================================
 
+# Versão do código (incrementar quando atualizar simple_faq_rag.py)
+CODE_VERSION = "2.0.0-llm"
 
-def init_session_state():
-    """Inicializa variáveis de sessão."""
-    if 'messages' not in st.session_state:
+@st.cache_resource(show_spinner="🚀 Carregando FAQ do Cloud Storage...")
+def load_faq_system(_version):
+    """
+    Carrega o sistema FAQ automaticamente do Cloud Storage.
+    Usa cache para não recarregar toda vez.
+
+    Args:
+        _version: Versão do código (força reload quando muda)
+    """
+    project_id = os.getenv("PROJECT_ID")
+    bucket_name = os.getenv("BUCKET_NAME")
+
+    if not project_id or not bucket_name:
+        st.error("❌ Configure .env com PROJECT_ID e BUCKET_NAME")
+        st.stop()
+
+    # Inicializar Cloud Storage
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
+
+    # Download embeddings
+    embeddings_blob = bucket.blob("embeddings/faq_embeddings.npy")
+    temp_embeddings = tempfile.NamedTemporaryFile(delete=False, suffix='.npy')
+    embeddings_blob.download_to_filename(temp_embeddings.name)
+
+    # Download metadata
+    metadata_blob = bucket.blob("knowledge_base/faq_metadata.csv")
+    temp_metadata = tempfile.NamedTemporaryFile(delete=False, suffix='.csv')
+    metadata_blob.download_to_filename(temp_metadata.name)
+
+    # Criar sistema
+    faq = SimpleFAQSystem(project_id=project_id)
+    faq.load_csv(temp_metadata.name)
+    faq.embeddings = np.load(temp_embeddings.name)
+
+    return faq
+
+# Carregar sistema (só executa 1 vez graças ao cache)
+# Passa CODE_VERSION para forçar reload quando código muda
+faq_system = load_faq_system(CODE_VERSION)
+
+# ============================================
+# HEADER
+# ============================================
+
+st.title("💬 FAQ Assistant com IA")
+st.markdown(f"*RAG com Gemini • {len(faq_system.df)} perguntas na base*")
+st.markdown("---")
+
+# ============================================
+# SESSION STATE
+# ============================================
+
+if 'messages' not in st.session_state:
+    st.session_state.messages = []
+
+# ============================================
+# SIDEBAR - INFO
+# ============================================
+
+with st.sidebar:
+    st.header("ℹ️ Informações")
+
+    st.success("🟢 Sistema Online")
+    st.metric("Perguntas disponíveis", len(faq_system.df))
+
+    st.markdown("---")
+    st.caption("**Project ID:**")
+    st.code(os.getenv("PROJECT_ID", "N/A"))
+
+    st.markdown("---")
+
+    # Botão para limpar conversa
+    if st.button("🗑️ Limpar Conversa"):
         st.session_state.messages = []
+        st.rerun()
 
-    if 'faq_system' not in st.session_state:
-        st.session_state.faq_system = None
+    # Botão para recarregar sistema (limpar cache)
+    if st.button("🔄 Recarregar Sistema", help="Limpa cache e recarrega código atualizado"):
+        st.cache_resource.clear()
+        st.rerun()
 
-    if 'initialized' not in st.session_state:
-        st.session_state.initialized = False
+    st.markdown("---")
 
-    if 'total_queries' not in st.session_state:
-        st.session_state.total_queries = 0
-
-
-def initialize_system(project_id: str, csv_path: str):
-    """Inicializa o sistema FAQ."""
-    try:
-        with st.spinner("🔄 Inicializando sistema..."):
-            # Criar sistema
-            faq = SimpleFAQSystem(project_id=project_id)
-
-            # Carregar CSV
-            faq.load_csv(csv_path)
-
-            # Criar base de conhecimento
-            st.info("⏳ Criando base de conhecimento... (1-2 minutos)")
-            faq.create_knowledge_base()
-
-            st.success("✅ Sistema pronto!")
-            return faq
-
-    except Exception as e:
-        st.error(f"❌ Erro: {e}")
-        return None
-
-
-def display_message(role: str, content: str, metadata: dict = None):
-    """Exibe mensagem no chat."""
-
-    if role == "user":
-        st.markdown(f"""
-        <div class="user-message">
-            <strong>👤 Você:</strong><br>
-            {content}
-        </div>
-        """, unsafe_allow_html=True)
-
-    else:  # assistant
-        confidence_class = f"confidence-{metadata.get('confidence', 'low').replace(' ', '-')}"
-
-        st.markdown(f"""
-        <div class="bot-message">
-            <strong>🤖 Assistente:</strong><br>
-            {content}
-        </div>
-        """, unsafe_allow_html=True)
-
-        if metadata and metadata.get('found'):
-            with st.expander("📊 Detalhes da resposta", expanded=False):
-                st.write(f"**Confiança:** {metadata.get('confidence', 'N/A')}")
-                st.write(f"**Score:** {metadata.get('score', 0):.1%}")
-                st.write(f"**Pergunta original:** {metadata.get('pergunta_encontrada', 'N/A')}")
-
-
-def main():
-    """Função principal do app."""
-
-    load_dotenv()
-    init_session_state()
-
-    # Header
-    st.title("💬 FAQ Assistant - Versão Simples")
-    st.markdown("Faça perguntas e receba respostas da base de conhecimento!")
-
-    # Sidebar
-    with st.sidebar:
-        st.header("⚙️ Configuração")
-
-        # Configurações
-        project_id = st.text_input(
-            "Project ID",
-            value=os.getenv("PROJECT_ID", ""),
-            help="ID do projeto Google Cloud"
-        )
-
-        csv_path = st.text_input(
-            "Caminho do CSV",
-            value="data/faq_example.csv",
-            help="Caminho para o arquivo CSV com perguntas/respostas"
-        )
-
-        st.divider()
-
-        # Botão inicializar
-        if st.button("🚀 Inicializar Sistema", type="primary"):
-            if not project_id:
-                st.error("⚠️ Preencha o Project ID")
-            elif not Path(csv_path).exists():
-                st.error(f"⚠️ CSV não encontrado: {csv_path}")
-            else:
-                st.session_state.faq_system = initialize_system(project_id, csv_path)
-                if st.session_state.faq_system:
-                    st.session_state.initialized = True
-                    st.rerun()
-
-        # Status
-        st.divider()
-        st.subheader("📊 Status")
-
-        if st.session_state.initialized:
-            st.success("✅ Sistema Online")
-            st.metric("Perguntas Feitas", st.session_state.total_queries)
-
-            if st.session_state.faq_system:
-                stats = st.session_state.faq_system.get_stats()
-                st.metric("Base de Dados", f"{stats['total_perguntas']} perguntas")
-        else:
-            st.warning("⚠️ Sistema Offline")
-            st.info("👆 Clique em 'Inicializar Sistema'")
-
-        # Exemplos
-        st.divider()
-        st.subheader("💡 Exemplos")
+    # Info sobre RAG
+    with st.expander("ℹ️ Como funciona"):
         st.markdown("""
-        - Como redefinir senha?
-        - Qual o prazo de entrega?
-        - Vocês aceitam PIX?
-        - Como rastrear pedido?
+**RAG (Retrieval Augmented Generation):**
+
+1. **Retrieval** 🔍
+   - Busca FAQs relevantes usando embeddings
+
+2. **Generation** 🤖
+   - Gemini gera resposta baseada nos FAQs
+   - Grounded em dados reais
+   - Prompt engineering aplicado
+
+3. **Output Filtering** ✅
+   - Filtra informações sensíveis
+   - Safety settings ativados
         """)
 
-        # Limpar
-        if st.button("🗑️ Limpar Chat"):
-            st.session_state.messages = []
-            st.session_state.total_queries = 0
-            st.rerun()
+    st.markdown("---")
+    st.caption("☁️ Powered by Vertex AI + Gemini")
 
-    # Área principal
-    if not st.session_state.initialized:
-        st.info("ℹ️ Configure e inicialize o sistema na barra lateral")
+# ============================================
+# CHAT PRINCIPAL
+# ============================================
 
-        with st.expander("📖 Como usar", expanded=True):
-            st.markdown("""
-            ### Passo a Passo:
+# Mostrar histórico
+for msg in st.session_state.messages:
+    with st.chat_message(msg["role"]):
+        st.markdown(msg["content"])
+        if "score" in msg:
+            score = msg["score"]
+            if score >= 0.8:
+                st.markdown(f"**Confiança:** :green[{score:.0%}]")
+            elif score >= 0.6:
+                st.markdown(f"**Confiança:** :orange[{score:.0%}]")
+            else:
+                st.markdown(f"**Confiança:** :red[{score:.0%}]")
 
-            1. **Configure o Project ID** na barra lateral
-            2. **Verifique o caminho do CSV** (padrão já incluso!)
-            3. **Clique em "Inicializar Sistema"**
-            4. **Aguarde** a criação da base (1-2 minutos)
-            5. **Comece a perguntar!**
+# Input do usuário
+if prompt := st.chat_input("Digite sua pergunta..."):
 
-            ### Formato do CSV:
+    # Adicionar mensagem do usuário
+    st.session_state.messages.append({"role": "user", "content": prompt})
 
-            Seu CSV deve ter duas colunas:
-            - `pergunta`: A pergunta
-            - `resposta`: A resposta correspondente
+    with st.chat_message("user"):
+        st.markdown(prompt)
 
-            Exemplo incluído em: `data/faq_example.csv`
-            """)
-
-    else:
-        # Container de mensagens
-        messages_container = st.container()
-
-        with messages_container:
-            for message in st.session_state.messages:
-                display_message(
-                    role=message["role"],
-                    content=message["content"],
-                    metadata=message.get("metadata")
-                )
-
-        # Input
-        st.divider()
-
-        question = st.chat_input("Digite sua pergunta...")
-
-        if question:
-            # Adicionar pergunta do usuário
-            st.session_state.messages.append({
-                "role": "user",
-                "content": question
-            })
-
-            # Exibir pergunta
-            with messages_container:
-                display_message("user", question)
-
-            # Processar
+    # Buscar resposta
+    with st.chat_message("assistant"):
+        with st.spinner("🤖 Processando com IA..."):
             try:
-                with st.spinner("🤔 Pensando..."):
-                    start_time = time.time()
+                # Usar RAG completo com LLM (Gemini)
+                result = faq_system.ask_with_llm(prompt)
 
-                    result = st.session_state.faq_system.ask(question)
+                if result['found']:
+                    # Resposta gerada pelo LLM
+                    resposta_gerada = result['resposta_gerada']
+                    score = result['score']
 
-                    elapsed = time.time() - start_time
+                    # Mostrar resposta gerada
+                    st.markdown(resposta_gerada)
 
-                # Adicionar resposta
-                st.session_state.messages.append({
-                    "role": "assistant",
-                    "content": result['resposta'],
-                    "metadata": result
-                })
+                    # Mostrar fonte (FAQ original) em expander
+                    with st.expander("📚 Ver FAQ original"):
+                        st.markdown(f"**Pergunta encontrada:** {result['pergunta_encontrada']}")
+                        st.markdown(f"**Resposta original:** {result['resposta_original']}")
+                        st.caption(f"✨ Resposta reformulada por IA (Gemini)")
 
-                # Incrementar contador
-                st.session_state.total_queries += 1
+                    # Mostrar confiança
+                    if score >= 0.8:
+                        st.markdown(f"**Confiança:** :green[{score:.0%}]")
+                    elif score >= 0.6:
+                        st.markdown(f"**Confiança:** :orange[{score:.0%}]")
+                    else:
+                        st.markdown(f"**Confiança:** :red[{score:.0%}]")
 
-                # Exibir resposta
-                with messages_container:
-                    display_message(
-                        "assistant",
-                        result['resposta'],
-                        metadata=result
-                    )
-
-                # Métricas
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.metric("⏱️ Tempo", f"{elapsed:.2f}s")
-                with col2:
-                    st.metric("🎯 Confiança", result.get('confidence', 'N/A'))
-                with col3:
-                    st.metric("📊 Score", f"{result.get('score', 0):.0%}")
-
-                st.rerun()
+                    # Salvar no histórico
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": resposta_gerada,
+                        "score": score
+                    })
+                else:
+                    msg = result.get('resposta_gerada', "Desculpe, não encontrei uma resposta relevante para essa pergunta. 😕")
+                    st.markdown(msg)
+                    st.session_state.messages.append({
+                        "role": "assistant",
+                        "content": msg
+                    })
 
             except Exception as e:
-                st.error(f"❌ Erro: {e}")
+                error_msg = f"❌ Erro ao buscar resposta: {e}"
+                st.error(error_msg)
+                st.session_state.messages.append({
+                    "role": "assistant",
+                    "content": error_msg
+                })
 
+# ============================================
+# FOOTER
+# ============================================
 
-if __name__ == "__main__":
-    main()
+st.markdown("---")
+st.caption("🤖 RAG (Retrieval Augmented Generation) • Powered by Vertex AI + Gemini 1.5 Flash")

@@ -1,327 +1,118 @@
-# 📖 GUIA COMPLETO PASSO A PASSO - Sistema FAQ com IA
+# 🚀 Guia Passo a Passo - Sistema FAQ RAG
 
-## 🎯 Do Zero ao Sistema Funcionando
+**Do Cloud Shell ao Sistema Funcionando em 15 Minutos**
 
-**Para:** Iniciantes em Google Cloud e IA
-**Tempo:** ~20 minutos
-**Nível:** Básico - Explicado em detalhes
-**Onde executar:** Google Cloud Shell (gratuito!)
+Este guia te leva do zero a um sistema FAQ inteligente rodando, sem erros.
 
----
+## 📋 Índice Rápido
 
-## 📋 ÍNDICE
-
-1. [O que você vai criar](#o-que-você-vai-criar)
-2. [Pré-requisitos](#pré-requisitos)
-3. [FASE 1: Preparar Ambiente](#fase-1-preparar-ambiente-cloud-shell)
-4. [FASE 2: Baixar Código](#fase-2-baixar-o-código-do-github)
-5. [FASE 3: Configurar Google Cloud](#fase-3-configurar-google-cloud)
-6. [FASE 4: Criar Bucket Organizado](#fase-4-criar-bucket-organizado)
-7. [FASE 5: Configurar Ambiente Python](#fase-5-configurar-ambiente-python)
-8. [FASE 6: Instalar Dependências](#fase-6-instalar-dependências)
-9. [FASE 7: Criar Script Principal](#fase-7-criar-script-para-usar-bucket)
-10. [FASE 8: Executar Sistema](#fase-8-executar-o-sistema)
-11. [FASE 9: Verificar Resultados](#fase-9-verificar-resultados)
-12. [FASE 10: Chat Web](#fase-10-abrir-chat-web-opcional)
-13. [Usar Seu Próprio CSV](#usando-seu-próprio-csv)
-14. [Troubleshooting](#troubleshooting-completo)
-15. [Próximos Passos](#próximos-passos)
+1. [Pré-requisitos](#1-pré-requisitos)
+2. [Cloud Shell e Projeto](#2-cloud-shell-e-projeto)
+3. [Clonar Código](#3-clonar-código)
+4. [Habilitar APIs](#4-habilitar-apis)
+5. [Criar Bucket e Estrutura](#5-criar-bucket-e-estrutura)
+6. [Upload do CSV](#6-upload-do-csv)
+7. [Configurar .env](#7-configurar-env-importante)
+8. [Instalar Dependências](#8-instalar-dependências)
+9. [Processar FAQ](#9-processar-faq)
+10. [Rodar Interface Web](#10-rodar-interface-web)
+11. [Troubleshooting](#troubleshooting)
 
 ---
 
-## 🎯 O QUE VOCÊ VAI CRIAR
+## 1. Pré-requisitos
 
-Um sistema inteligente de FAQ (Perguntas Frequentes) que:
+**Você precisa ter:**
+- Conta Google (Gmail)
+- Projeto Google Cloud criado
+- Billing habilitado (pode usar free tier!)
 
-- ✅ Busca respostas em um arquivo CSV
-- ✅ Usa Inteligência Artificial para entender perguntas similares
-- ✅ Retorna respostas relevantes mesmo com palavras diferentes
-- ✅ Funciona via linha de comando E interface web
-- ✅ Dados organizados profissionalmente no Google Cloud
-
-**Exemplo:**
-```
-Você pergunta: "esqueci minha senha"
-Sistema encontra: "Como redefinir senha?"
-Retorna: "Vá em Configurações > Segurança..."
-```
+**Não precisa instalar nada!** Tudo roda no Cloud Shell (navegador).
 
 ---
 
-## 📝 PRÉ-REQUISITOS
+## 2. Cloud Shell e Projeto
 
-### Você Precisa Ter:
+### 2.1 Abrir Cloud Shell
 
-1. **Conta Google** (Gmail)
-2. **Projeto no Google Cloud**
-   - Se não tem: https://console.cloud.google.com/projectcreate
-   - Criar projeto novo (ex: "meu-projeto-faq")
-   
-**Tudo roda no navegador!** ☁️
+1. Vá para https://console.cloud.google.com
+2. Clique no ícone **">_"** no topo direito
+3. Janela de terminal abre (Cloud Shell)
 
----
-
-## 🚀 FASE 1: PREPARAR AMBIENTE (Cloud Shell)
-
-### **Passo 1.1: Acessar Google Cloud Console**
-
-1. Abra seu navegador
-2. Vá para: **https://console.cloud.google.com**
-3. Faça login com sua conta Google
-4. Aceite os termos se for primeira vez
-
-**Você verá:** Painel principal do Google Cloud
-
----
-
-### **Passo 1.2: Abrir Cloud Shell**
-
-O Cloud Shell é um terminal Linux gratuito que roda no navegador.
-
-1. Procure no **topo da página**, canto direito
-2. Encontre o ícone **">_"** (parece um terminal)
-3. **Clique** nele
-
-**Vai acontecer:**
-- Uma janela preta abre na parte de baixo
-- Mostra mensagem "Welcome to Cloud Shell!"
-- Aparece um prompt: `seu-usuario@cloudshell:~$`
-
-**Isso é o Cloud Shell!** É como um computador Linux só seu! 🖥️
-
----
-
-### **Passo 1.3: Verificar Projeto Ativo**
-
-No Cloud Shell, digite (ou cole):
+### 2.2 Configurar Projeto
 
 ```bash
+# Ver projeto atual
 gcloud config get-value project
+
+# Se não aparecer ou estiver errado, configurar:
+gcloud config set project SEU-PROJECT-ID
+
+# Anotar o PROJECT_ID! Você vai usar várias vezes
 ```
 
-**Apertar ENTER**
-
-**Vai mostrar algo como:**
-```
-meu-projeto-123456
-```
-
-**Anote esse nome!** Você vai precisar dele.
-
-Se não mostrar nada ou mostrar projeto errado, configure:
-
-```bash
-gcloud config set project SEU-PROJECT-ID-AQUI
-```
-
-Substitua `SEU-PROJECT-ID-AQUI` pelo ID do seu projeto.
-
-**Como saber o PROJECT_ID?**
-- Olhe no topo do Cloud Console
-- Ao lado de "Google Cloud", tem um seletor de projeto
-- Clique nele e veja o ID (ex: `teste-123456`)
-
-✅ **Projeto configurado!**
+**✅ Checkpoint:** Comando `gcloud config get-value project` retorna seu projeto
 
 ---
 
-## 📥 FASE 2: BAIXAR O CÓDIGO DO GITHUB
-
-### **Passo 2.1: Clonar Repositório**
-
-No Cloud Shell, cole este comando:
+## 3. Clonar Código
 
 ```bash
+# Clonar repositório
 git clone https://github.com/queziademetrioleo/demo-diy-rag.git
-```
-
-**ENTER**
-
-**Vai aparecer:**
-```
-Cloning into 'demo-diy-rag'...
-remote: Enumerating objects: 150, done.
-remote: Counting objects: 100% (150/150), done.
-Receiving objects: 100% (150/150), done.
-```
-
-**O que aconteceu?**
-- Baixou todo o código do GitHub
-- Criou pasta `demo-diy-rag` no Cloud Shell
-
-✅ **Código baixado!**
-
----
-
-### **Passo 2.2: Entrar na Pasta**
-
-```bash
 cd demo-diy-rag
-```
 
-**O prompt muda para:**
-```
-seu-usuario@cloudshell:~/demo-diy-rag$
-```
-
-Isso significa que você está dentro da pasta!
-
----
-
-### **Passo 2.3: Mudar para Branch Simples**
-
-O código tem várias versões. Vamos usar a versão SIMPLES:
-
-```bash
+# Mudar para branch do sistema simples
 git checkout claude/simple-faq-rag-34uUC
-```
 
-**Vai aparecer:**
-```
-Branch 'claude/simple-faq-rag-34uUC' set up to track...
-Switched to a new branch 'claude/simple-faq-rag-34uUC'
-```
-
-**Verificar se deu certo:**
-
-```bash
-git branch
-```
-
-**Deve mostrar:**
-```
-* claude/simple-faq-rag-34uUC
-```
-
-O `*` indica que está na branch correta!
-
-✅ **Versão simples ativada!**
-
----
-
-### **Passo 2.4: Ver Arquivos Baixados**
-
-Vamos ver o que baixamos:
-
-```bash
+# Verificar arquivos
 ls -la
 ```
 
-**Você vai ver:**
-```
-drwxr-xr-x  data/
-drwxr-xr-x  simple_scripts/
--rw-r--r--  simple_faq_rag.py
--rw-r--r--  simple_app.py
--rw-r--r--  requirements.txt
--rw-r--r--  .env.example
-...
-```
+**Você deve ver:**
+- `simple_faq_rag.py` - Sistema RAG
+- `simple_app.py` - Interface Streamlit
+- `simple_scripts/` - Scripts auxiliares
+- `data/faq_example.csv` - CSV de exemplo
+- `requirements.txt` - Dependências
 
-**Principais arquivos:**
-- `simple_faq_rag.py` - Código do sistema
-- `simple_app.py` - Interface web
-- `data/faq_example.csv` - 25 perguntas exemplo
-- `requirements.txt` - Lista de dependências
-
-✅ **Tudo pronto para configurar!**
+**✅ Checkpoint:** Arquivo `simple_faq_rag.py` existe
 
 ---
 
-## ⚙️ FASE 3: CONFIGURAR GOOGLE CLOUD
-
-### **Passo 3.1: Habilitar API do Vertex AI**
-
-O Vertex AI é o serviço de IA do Google. Precisa estar ativado:
+## 4. Habilitar APIs
 
 ```bash
-gcloud services enable aiplatform.googleapis.com
+# Habilitar Vertex AI e Cloud Storage
+gcloud services enable \
+  aiplatform.googleapis.com \
+  storage-api.googleapis.com
+
+# Aguardar ativação (30 segundos)
+sleep 30 && echo "✅ APIs habilitadas!"
 ```
 
-**Vai aparecer:**
-```
-Operation "operations/acat.p2..." started.
-Waiting for operation to complete...
-Operation finished successfully.
-```
-
-**Aguarde 30 segundos** para garantir que ativou:
-
-```bash
-sleep 30
-echo "✅ API ativada!"
-```
-
-✅ **Vertex AI habilitado!**
+**✅ Checkpoint:** Comando termina sem erros
 
 ---
 
-### **Passo 3.2: Verificar Permissões (Opcional)**
+## 5. Criar Bucket e Estrutura
 
-Para verificar se você tem as permissões necessárias:
-
-```bash
-gcloud projects get-iam-policy $(gcloud config get-value project) \
-  --flatten="bindings[].members" \
-  --filter="bindings.members:user:$(gcloud config get-value account)"
-```
-
-**Deve mostrar roles como:**
-- `roles/owner` OU
-- `roles/editor` OU
-- `roles/aiplatform.user`
-
-Se não mostrar nada, você pode precisar pedir permissões ao administrador do projeto.
-
-✅ **Permissões OK!**
-
----
-
-## 🪣 FASE 4: CRIAR BUCKET ORGANIZADO
-
-Um "bucket" é como uma pasta no Google Cloud onde guardamos arquivos.
-
-### **Passo 4.1: Criar Bucket Principal**
-
-**IMPORTANTE:** Troque `SEU-PROJECT-ID` pelo ID do seu projeto!
+### 5.1 Criar Bucket
 
 ```bash
-# Se seu projeto é "teste-123", o bucket será "teste-123-data"
+# Criar bucket (substitui SEU-PROJECT-ID automaticamente)
 gsutil mb -l us-central1 gs://$(gcloud config get-value project)-data
 ```
 
-**Exemplo real:**
-```bash
-# Se PROJECT_ID = teste-de-big-query-472216
-# Cria: gs://teste-de-big-query-472216-data
-```
+**⚠️ Se der erro "bucket exists":** Tudo bem! Continue.
 
-**Vai aparecer:**
-```
-Creating gs://seu-projeto-data/...
-```
-
-**Se der erro "bucket exists":** Não tem problema! O bucket já existe, continue.
-
-✅ **Bucket criado!**
-
----
-
-### **Passo 4.2: Criar Estrutura de Pastas**
-
-Vamos organizar bonitinho, como pastas no Windows:
+### 5.2 Criar Pastas Organizadas
 
 ```bash
-# Criar marcadores de pasta
-echo "Criando estrutura organizada..."
-
-# Pasta para CSV original
+# Criar estrutura de pastas no bucket
 echo "" | gsutil cp - gs://$(gcloud config get-value project)-data/raw_data/.keep
-
-# Pasta para embeddings (vetores de IA)
 echo "" | gsutil cp - gs://$(gcloud config get-value project)-data/embeddings/.keep
-
-# Pasta para base de conhecimento
 echo "" | gsutil cp - gs://$(gcloud config get-value project)-data/knowledge_base/.keep
 
 echo "✅ Estrutura criada!"
@@ -330,244 +121,157 @@ echo "✅ Estrutura criada!"
 **Estrutura criada:**
 ```
 seu-projeto-data/
-├── raw_data/          ← CSV vai aqui
-├── embeddings/        ← Vetores de IA aqui
-└── knowledge_base/    ← Base final aqui
+├── raw_data/          # CSV original
+├── embeddings/        # Vetores de IA (.npy)
+└── knowledge_base/    # Metadata (.csv)
 ```
 
-✅ **Pastas organizadas!**
+**✅ Checkpoint:** `gsutil ls gs://$(gcloud config get-value project)-data` mostra as 3 pastas
 
 ---
 
-### **Passo 4.3: Enviar CSV para o Bucket**
+## 6. Upload do CSV
 
-Agora você tem **2 opções**:
-- **Opção A:** Usar o CSV de exemplo (25 perguntas já incluídas)
-- **Opção B:** Enviar SEU PRÓPRIO CSV do computador
+**⚠️ CRÍTICO:** Nome do arquivo **NÃO PODE** ter espaços ou caracteres especiais!
 
----
-
-#### **OPÇÃO A: Usar CSV de Exemplo (Rápido!)**
-
-O repositório já vem com um arquivo pronto. Vamos só copiar para o bucket:
+### Opção A: Usar CSV de Exemplo (Recomendado)
 
 ```bash
-# Copiar CSV de exemplo para o bucket
+# Copiar CSV de exemplo para bucket
 gsutil cp data/faq_example.csv gs://$(gcloud config get-value project)-data/raw_data/
-
-echo "✅ CSV enviado!"
 ```
 
-**Pule para "Verificar Upload" abaixo** ⬇️
+### Opção B: Usar Seu Próprio CSV
 
----
+**Seu CSV precisa ter colunas:**
+- `Questions` e `Answers` (inglês), OU
+- `pergunta` e `resposta` (português)
 
-#### **OPÇÃO B: Enviar SEU CSV do Computador**
+**PASSO 1: Renomear arquivo (se necessário)**
 
-Se você tem seu próprio arquivo CSV, siga estes passos:
-
-**Passo 1: Fazer Upload para Cloud Shell**
-
-1. No Cloud Shell, procure o **menu ⋮** (três pontinhos) no canto superior direito
-2. Clique em **"Upload"**
-3. Clique em **"Choose Files"**
-4. Selecione seu arquivo CSV do computador
-5. Aguarde aparecer: **"Upload completed"**
-
-**Exemplo visual:**
-```
-Cloud Shell → Menu ⋮ → Upload → Choose Files → Selecionar CSV
-```
-
-**Passo 2: Verificar que o arquivo subiu**
+Se seu arquivo tem espaços, renomeie ANTES de subir:
 
 ```bash
-# Listar arquivos no diretório home
-ls ~/*.csv
+# Exemplo: "FAQ - DEMO (v1).csv" → "faq_demo.csv"
+# ❌ ERRADO: Arquivo com espaços quebra!
+# ✅ CORRETO: Apenas letras, números, _ e -
 ```
 
-**Deve mostrar algo como:**
-```
-/home/seu_usuario/meu_arquivo.csv
-```
+**PASSO 2: Upload pelo Cloud Shell**
 
-**Passo 3: Copiar para o Bucket**
+1. Clique no menu **⋮** (três pontos) no Cloud Shell
+2. Selecione **Upload**
+3. Escolha seu arquivo CSV (já renomeado!)
+4. Aguarde "Upload completed"
+
+**PASSO 3: Copiar para bucket**
 
 ```bash
-# Substitua "meu_arquivo.csv" pelo nome real do seu arquivo
-gsutil cp ~/meu_arquivo.csv gs://$(gcloud config get-value project)-data/raw_data/
-
-echo "✅ CSV copiado para o bucket!"
+# Substitua "faq_demo.csv" pelo nome do seu arquivo
+gsutil cp ~/faq_demo.csv gs://$(gcloud config get-value project)-data/raw_data/
 ```
 
-**Exemplo:**
-```bash
-# Se seu arquivo se chama "faq_loja.csv"
-gsutil cp ~/faq_loja.csv gs://$(gcloud config get-value project)-data/raw_data/
-```
-
----
-
-#### **Verificar Upload (Ambas Opções)**
-
-Confirme que o arquivo está no bucket:
+### Verificar Upload
 
 ```bash
+# Listar arquivos no bucket
 gsutil ls gs://$(gcloud config get-value project)-data/raw_data/
+
+# Deve mostrar seu CSV
 ```
 
-**Deve mostrar:**
-```
-gs://teste-de-big-query-472216-data/raw_data/faq_example.csv
-# OU
-gs://teste-de-big-query-472216-data/raw_data/seu_arquivo.csv
-```
-
-✅ **CSV no Cloud Storage!**
-
-**📝 Lembre-se:** Se você usou seu próprio CSV, precisa atualizar o arquivo `.env` na FASE 5 com o nome correto!
+**✅ Checkpoint:** Seu CSV aparece na listagem
 
 ---
 
-## 🐍 FASE 5: CONFIGURAR AMBIENTE PYTHON
+## 7. Configurar .env (IMPORTANTE!)
 
-### **Passo 5.1: Criar Arquivo .env**
-
-O arquivo `.env` guarda as configurações do sistema.
+**⚠️ CRÍTICO:** Arquivo .env NÃO PODE ter comentários decorativos!
 
 ```bash
 # Copiar exemplo
 cp .env.example .env
-```
 
-Agora vamos editar:
-
-```bash
+# Editar
 nano .env
 ```
 
-**Um editor de texto vai abrir!**
+**No editor nano:**
 
----
-
-### **Passo 5.2: Editar Configurações**
-
-**Você vai ver várias linhas.**
-
-**Pressione `Ctrl+K` várias vezes** para apagar tudo até ficar vazio.
-
-Agora **cole estas linhas:**
+1. Pressione `Ctrl+K` várias vezes até apagar TUDO
+2. Cole EXATAMENTE isto (substituindo SEU-PROJECT-ID):
 
 ```bash
-# Configuração Simples
-PROJECT_ID=SEU-PROJECT-ID-AQUI
+PROJECT_ID=SEU-PROJECT-ID
 LOCATION=us-central1
-BUCKET_NAME=SEU-PROJECT-ID-AQUI-data
+BUCKET_NAME=SEU-PROJECT-ID-data
 RAW_DATA_PATH=raw_data/faq_example.csv
-TOP_K_RESULTS=3
-SIMILARITY_THRESHOLD=0.7
 ```
 
-**IMPORTANTE:** Substitua `SEU-PROJECT-ID-AQUI` pelo ID do seu projeto!
+**❌ NÃO FAÇA ISTO:**
+```bash
+# ============================================
+# CONFIGURAÇÃO (comentários decorativos!)
+# ============================================
+PROJECT_ID=...  # Isso quebra o parser!
+```
 
-**Exemplo real:**
+**✅ FAÇA ASSIM:**
 ```bash
 PROJECT_ID=teste-de-big-query-472216
 LOCATION=us-central1
 BUCKET_NAME=teste-de-big-query-472216-data
 RAW_DATA_PATH=raw_data/faq_example.csv
-TOP_K_RESULTS=3
-SIMILARITY_THRESHOLD=0.7
 ```
 
-**Para salvar:**
-1. Pressione `Ctrl + O` (letra O)
-2. Pressione `Enter`
-3. Pressione `Ctrl + X`
-
-**Verificar se salvou:**
-
+**Se usou seu próprio CSV, atualize a linha `RAW_DATA_PATH`:**
 ```bash
-cat .env | head -3
+RAW_DATA_PATH=raw_data/seu_arquivo.csv
 ```
 
-**Deve mostrar suas configurações!**
+**Salvar:**
+1. `Ctrl+O` → `Enter`
+2. `Ctrl+X`
 
-✅ **Configurações salvas!**
+**Verificar:**
+```bash
+cat .env
+```
+
+**✅ Checkpoint:** .env mostra suas 4 linhas sem comentários decorativos
 
 ---
 
-## 📦 FASE 6: INSTALAR DEPENDÊNCIAS
+## 8. Instalar Dependências
 
-### **Passo 6.1: Criar Ambiente Virtual**
-
-Um ambiente virtual isola as bibliotecas Python para não bagunçar o sistema.
+### 8.1 Criar Ambiente Virtual
 
 ```bash
-# Criar ambiente
+# Criar e ativar ambiente virtual
 python3 -m venv venv
-```
-
-**Aguarde ~10 segundos**
-
-```bash
-# Ativar ambiente
 source venv/bin/activate
 ```
 
-**O prompt muda!** Agora tem `(venv)` no início:
+**O prompt muda para:**
 ```
-(venv) seu-usuario@cloudshell:~/demo-diy-rag$
+(venv) usuario@cloudshell:~/demo-diy-rag$
 ```
 
-**Isso é IMPORTANTE!** Significa que o ambiente está ativo.
+**⚠️ Importante:** O `(venv)` deve aparecer! Se não aparecer, rode `source venv/bin/activate` novamente.
 
-✅ **Ambiente virtual criado!**
-
----
-
-### **Passo 6.2: Atualizar pip**
-
-O pip é o instalador de pacotes Python. Vamos atualizá-lo:
+### 8.2 Instalar Pacotes
 
 ```bash
+# Atualizar pip
 pip install --upgrade pip
-```
 
-**Vai mostrar:**
-```
-Successfully installed pip-24.0
-```
-
-✅ **pip atualizado!**
-
----
-
-### **Passo 6.3: Instalar Todas as Bibliotecas**
-
-Agora vem a parte que demora um pouco (~3 minutos):
-
-```bash
+# Instalar todas as dependências (~3 minutos)
 pip install -r requirements.txt
 ```
 
-**Vai aparecer MUITAS mensagens:**
-```
-Collecting google-cloud-aiplatform
-Downloading google_cloud_aiplatform-1.38.1...
-Installing collected packages: ...
-Successfully installed [lista enorme]
-```
+**☕ Aguarde ~3 minutos...**
 
-**☕ Hora do café!** Aguarde terminar...
-
-**Quando terminar, você verá:**
-```
-Successfully installed [última biblioteca]
-```
-
-**Verificar se instalou:**
-
+**Verificar instalação:**
 ```bash
 pip list | grep google-cloud
 ```
@@ -578,239 +282,23 @@ google-cloud-aiplatform    1.38.1
 google-cloud-storage       2.14.0
 ```
 
-✅ **Tudo instalado!** (~40 pacotes)
+**✅ Checkpoint:** Dependências instaladas sem erros
 
 ---
 
-## 📝 FASE 7: CRIAR SCRIPT PARA USAR BUCKET
+## 9. Processar FAQ
 
-### **Passo 7.1: Criar Arquivo do Script**
-
-```bash
-nano simple_scripts/03_use_bucket.py
-```
-
-**Editor vazio vai abrir.**
-
----
-
-### **Passo 7.2: Copiar Código Completo**
-
-**Cole este código completo** (é longo, mas é só copiar tudo):
-
-```python
-#!/usr/bin/env python3
-"""
-Script 03: Sistema FAQ com Google Cloud Storage
-Baixa CSV do bucket, cria base de conhecimento e salva tudo organizado.
-"""
-
-import sys
-import os
-from pathlib import Path
-
-# Adicionar pasta src ao path
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from dotenv import load_dotenv
-from simple_faq_rag import SimpleFAQSystem
-from google.cloud import storage
-
-
-def print_header(title):
-    """Imprime cabeçalho bonito."""
-    print("\n" + "="*70)
-    print(title)
-    print("="*70)
-
-
-def download_csv():
-    """Baixa CSV do Cloud Storage."""
-    print("\n📥 Baixando CSV do bucket...")
-
-    load_dotenv()
-    bucket_name = os.getenv("BUCKET_NAME")
-    csv_path = os.getenv("RAW_DATA_PATH")
-
-    client = storage.Client()
-    bucket = client.bucket(bucket_name)
-    blob = bucket.blob(csv_path)
-
-    local_file = "data/faq_from_bucket.csv"
-    blob.download_to_filename(local_file)
-
-    print(f"✅ Baixado: {local_file}")
-    return local_file
-
-
-def upload_knowledge_base(local_path):
-    """Envia base de conhecimento para o bucket."""
-    print("\n📤 Enviando base para o bucket...")
-
-    load_dotenv()
-    bucket_name = os.getenv("BUCKET_NAME")
-
-    client = storage.Client()
-    bucket = client.bucket(bucket_name)
-
-    # Upload embeddings
-    emb_file = f"{local_path}_embeddings.npy"
-    if Path(emb_file).exists():
-        blob_emb = bucket.blob("knowledge_base/embeddings.npy")
-        blob_emb.upload_from_filename(emb_file)
-        print(f"   ✅ embeddings.npy")
-
-    # Upload data
-    data_file = f"{local_path}_data.csv"
-    if Path(data_file).exists():
-        blob_data = bucket.blob("knowledge_base/data.csv")
-        blob_data.upload_from_filename(data_file)
-        print(f"   ✅ data.csv")
-
-
-def main():
-    """Execução principal."""
-
-    print_header("🪣 SISTEMA FAQ COM GOOGLE CLOUD STORAGE")
-
-    load_dotenv()
-
-    project_id = os.getenv("PROJECT_ID")
-    bucket_name = os.getenv("BUCKET_NAME")
-
-    if not project_id or not bucket_name:
-        print("❌ Erro: .env não configurado!")
-        print("Configure PROJECT_ID e BUCKET_NAME no arquivo .env")
-        return 1
-
-    print(f"\n✅ Projeto: {project_id}")
-    print(f"✅ Bucket: gs://{bucket_name}")
-
-    try:
-        # 1. Baixar CSV
-        print_header("ETAPA 1: Baixando dados do Cloud Storage")
-        csv_file = download_csv()
-
-        # 2. Inicializar
-        print_header("ETAPA 2: Inicializando sistema de IA")
-        faq = SimpleFAQSystem(project_id=project_id)
-        print("✅ Sistema inicializado!")
-
-        # 3. Carregar CSV
-        print_header("ETAPA 3: Carregando perguntas e respostas")
-        faq.load_csv(csv_file)
-        stats = faq.get_stats()
-        print(f"✅ {stats['total_perguntas']} perguntas carregadas!")
-
-        # 4. Criar base
-        print_header("ETAPA 4: Criando base de conhecimento")
-        print("⏳ Gerando embeddings com IA...")
-        print("   Isso demora 1-2 minutos, aguarde...")
-
-        faq.create_knowledge_base()
-        print("✅ Base de conhecimento criada!")
-
-        # 5. Salvar local
-        print_header("ETAPA 5: Salvando base localmente")
-        local_kb = "data/knowledge_base"
-        faq.save_knowledge_base(local_kb)
-        print("✅ Base salva!")
-
-        # 6. Upload
-        print_header("ETAPA 6: Enviando para Cloud Storage")
-        upload_knowledge_base(local_kb)
-        print("✅ Base enviada para o bucket!")
-
-        # 7. Testar
-        print_header("ETAPA 7: Testando sistema")
-
-        test_questions = [
-            "Como resetar senha?",
-            "Qual o prazo de entrega?",
-            "Vocês aceitam PIX?"
-        ]
-
-        print("\n🧪 Executando testes...\n")
-
-        for i, question in enumerate(test_questions, 1):
-            print(f"📝 Teste {i}/{len(test_questions)}")
-            print(f"❓ Pergunta: {question}")
-
-            result = faq.ask(question)
-
-            if result['found']:
-                print(f"✅ Confiança: {result['confidence']}")
-                print(f"💬 Resposta: {result['resposta'][:80]}...")
-                print(f"📊 Score: {result['score']:.0%}\n")
-            else:
-                print("❌ Resposta não encontrada\n")
-
-        # Resumo final
-        print_header("🎉 CONCLUÍDO COM SUCESSO!")
-        print(f"\n📁 Estrutura no Cloud Storage:")
-        print(f"   gs://{bucket_name}/")
-        print(f"   ├── raw_data/")
-        print(f"   │   └── faq_example.csv")
-        print(f"   └── knowledge_base/")
-        print(f"       ├── embeddings.npy")
-        print(f"       └── data.csv")
-        print("\n✅ Tudo organizado e funcionando!")
-        print("="*70)
-
-        return 0
-
-    except Exception as e:
-        print(f"\n❌ Erro: {e}")
-        print("\n💡 Dicas:")
-        print("   - Verifique se API está habilitada")
-        print("   - Verifique se .env está correto")
-        print("   - Verifique se bucket existe")
-        return 1
-
-
-if __name__ == "__main__":
-    sys.exit(main())
-```
-
-**Salvar:**
-1. `Ctrl + O` → `Enter` → `Ctrl + X`
-
----
-
-### **Passo 7.3: Tornar Executável**
+Este script vai:
+1. Baixar CSV do bucket
+2. Criar embeddings com Vertex AI
+3. Salvar base de conhecimento no bucket
 
 ```bash
-chmod +x simple_scripts/03_use_bucket.py
-```
-
-**Verificar se criou:**
-
-```bash
-ls -lh simple_scripts/03_use_bucket.py
-```
-
-**Deve mostrar:**
-```
--rwxr-xr-x ... 03_use_bucket.py
-```
-
-O `x` significa executável!
-
-✅ **Script criado e pronto!**
-
----
-
-## 🚀 FASE 8: EXECUTAR O SISTEMA!
-
-### **Passo 8.1: Momento da Verdade!**
-
-Agora vamos rodar tudo! 🎉
-
-```bash
+# Executar processamento
 python simple_scripts/03_use_bucket.py
 ```
 
-**Vai começar a aparecer:**
+**Vai aparecer:**
 
 ```
 ======================================================================
@@ -823,573 +311,236 @@ python simple_scripts/03_use_bucket.py
 ======================================================================
 ETAPA 1: Baixando dados do Cloud Storage
 ======================================================================
-
 📥 Baixando CSV do bucket...
-✅ Baixado: data/faq_from_bucket.csv
+✅ Baixado: [arquivo temporário]
 
 ======================================================================
-ETAPA 2: Inicializando sistema de IA
+ETAPA 2: Inicializando Sistema FAQ
 ======================================================================
 ✅ Sistema inicializado!
 
 ======================================================================
-ETAPA 3: Carregando perguntas e respostas
+ETAPA 3: Carregando Perguntas e Respostas
 ======================================================================
-✅ 25 perguntas carregadas!
+📊 Total de perguntas: 25
 
 ======================================================================
-ETAPA 4: Criando base de conhecimento
+ETAPA 4: Criando Base de Conhecimento (Embeddings)
 ======================================================================
-⏳ Gerando embeddings com IA...
-   Isso demora 1-2 minutos, aguarde...
+⏳ Isso pode levar alguns minutos...
 ```
 
-**Aqui vai demorar 1-2 minutos!** ☕ É normal!
+**⏰ AGUARDE 2-5 MINUTOS** - Está criando embeddings com IA!
 
-O sistema está transformando as perguntas em vetores de IA.
-
-**Depois continua:**
+**Quando terminar:**
 
 ```
 ✅ Base de conhecimento criada!
 
 ======================================================================
-ETAPA 5: Salvando base localmente
+ETAPA 5: Salvando Base de Conhecimento
 ======================================================================
-✅ Base salva!
+✅ Embeddings salvos
+✅ Metadados salvos
 
 ======================================================================
 ETAPA 6: Enviando para Cloud Storage
 ======================================================================
+📤 Fazendo upload da base de conhecimento...
+   ✅ Embeddings enviados
+   ✅ Metadados enviados
 
-📤 Enviando base para o bucket...
-   ✅ embeddings.npy
-   ✅ data.csv
-✅ Base enviada para o bucket!
-
-======================================================================
-ETAPA 7: Testando sistema
-======================================================================
-
-🧪 Executando testes...
-
-📝 Teste 1/3
-❓ Pergunta: Como resetar senha?
-✅ Confiança: alta
-💬 Resposta: Para redefinir sua senha, vá em Configurações > Segurança > Redefinir...
-📊 Score: 89%
-
-📝 Teste 2/3
-❓ Pergunta: Qual o prazo de entrega?
-✅ Confiança: muito alta
-💬 Resposta: O prazo de entrega padrão é de 5 a 7 dias úteis. Para entregas ex...
-📊 Score: 95%
-
-📝 Teste 3/3
-❓ Pergunta: Vocês aceitam PIX?
-✅ Confiança: alta
-💬 Resposta: Aceitamos cartão de crédito, débito, PIX e boleto bancário. Parcel...
-📊 Score: 87%
+✅ Base de conhecimento salva no bucket!
 
 ======================================================================
-🎉 CONCLUÍDO COM SUCESSO!
+ETAPA 7: Testando Sistema
 ======================================================================
+🧪 Fazendo 3 perguntas de teste:
 
-📁 Estrutura no Cloud Storage:
-   gs://seu-projeto-data/
-   ├── raw_data/
-   │   └── faq_example.csv
-   └── knowledge_base/
-       ├── embeddings.npy
-       └── data.csv
+[Testes aparecem aqui...]
 
-✅ Tudo organizado e funcionando!
+======================================================================
+✅ PROCESSO CONCLUÍDO COM SUCESSO!
 ======================================================================
 ```
 
----
-
-## 🎊 **PARABÉNS! FUNCIONOU!** 🎊
-
-Se você viu essa saída, seu sistema está 100% funcional! 🎉
-
----
-
-## 📊 FASE 9: VERIFICAR RESULTADOS
-
-### **Passo 9.1: Ver Bucket via Comando**
-
+**Verificar que funcionou:**
 ```bash
-# Listar tudo no bucket
+# Listar arquivos criados
 gsutil ls -r gs://$(gcloud config get-value project)-data/
 ```
 
-**Vai mostrar:**
+**Deve mostrar:**
 ```
-gs://seu-projeto-data/raw_data/:
-gs://seu-projeto-data/raw_data/faq_example.csv
+gs://seu-projeto-data/embeddings/:
+gs://seu-projeto-data/embeddings/faq_embeddings.npy
 
 gs://seu-projeto-data/knowledge_base/:
-gs://seu-projeto-data/knowledge_base/data.csv
-gs://seu-projeto-data/knowledge_base/embeddings.npy
+gs://seu-projeto-data/knowledge_base/faq_metadata.csv
+
+gs://seu-projeto-data/raw_data/:
+gs://seu-projeto-data/raw_data/faq_example.csv
 ```
 
-✅ **Tudo no lugar!**
+**✅ Checkpoint:** 3 pastas com arquivos criados
 
 ---
 
-### **Passo 9.2: Ver Bucket no Navegador**
+## 10. Rodar Interface Web
 
-1. Abra nova aba: **https://console.cloud.google.com/storage/browser**
-2. Você verá seu bucket: `seu-projeto-data`
-3. Clique nele
-4. Explore as pastas:
-   - `raw_data/` → Tem o CSV original
-   - `knowledge_base/` → Tem a base criada!
-
-**Você pode até baixar os arquivos!**
-
-✅ **Visualmente confirmado!**
-
----
-
-### **Passo 9.3: Testar Manualmente**
-
-Vamos fazer uma pergunta diferente:
+### 10.1 Iniciar Streamlit
 
 ```bash
-python -c "
-from simple_faq_rag import SimpleFAQSystem
-from dotenv import load_dotenv
-import os
-
-load_dotenv()
-faq = SimpleFAQSystem(project_id=os.getenv('PROJECT_ID'))
-faq.load_knowledge_base('data/knowledge_base')
-
-result = faq.ask('Como faço para trocar um produto?')
-print(f'Resposta: {result[\"resposta\"]}')
-print(f'Confiança: {result[\"confidence\"]}')
-"
-```
-
-**Deve retornar uma resposta!**
-
-✅ **Sistema testado manualmente!**
-
----
-
-## 🎨 FASE 10: ABRIR CHAT WEB (Opcional)
-
-### **Passo 10.1: Executar Interface Web**
-
-```bash
-streamlit run simple_app.py --server.port 8080
+# Rodar app Streamlit
+streamlit run simple_app.py \
+  --server.port=8080 \
+  --server.address=0.0.0.0 \
+  --browser.serverAddress=localhost \
+  --server.enableCORS=false \
+  --server.enableXsrfProtection=false
 ```
 
 **Vai aparecer:**
 ```
 You can now view your Streamlit app in your browser.
 
+  Local URL: http://localhost:8080
   Network URL: http://172.17.0.2:8080
-  External URL: http://34.xxx.xxx.xxx:8080
 ```
 
----
-
-### **Passo 10.2: Abrir Web Preview**
+### 10.2 Abrir no Navegador
 
 **No Cloud Shell:**
-1. Procure botão **"Web Preview"** (ícone de página)
-2. Clique nele
-3. Selecione **"Preview on port 8080"**
+1. Procure botão **"Web Preview"** no topo
+2. Clique → **"Preview on port 8080"**
+3. Nova aba abre com o sistema!
 
-**Uma nova aba abre com o chat!** 🎉
+### 10.3 Usar o Sistema
 
----
+**O sistema carrega AUTOMATICAMENTE!**
 
-### **Passo 10.3: Usar o Chat**
-
-**Na interface:**
-
-1. **Sidebar esquerda:**
-   - PROJECT_ID: Já preenchido ✓
-   - CSV path: Já configurado ✓
-
-2. **Clique em "🚀 Inicializar Sistema"**
-   - Aguarde ~2 minutos
-   - Vai mostrar "✅ Sistema Online"
-
-3. **Digite perguntas na caixa:**
-   - "Como resetar senha?"
-   - "Qual prazo de entrega?"
-   - "Aceitam cartão?"
-
-4. **Veja as respostas aparecerem!**
+1. Aguarde ~10 segundos (carregar do bucket)
+2. Veja "🟢 Sistema Online" na sidebar
+3. Digite perguntas no chat:
+   - "Olá" → Cumprimento amigável
+   - "Como resetar senha?" → Resposta com FAQ
+   - "Qual prazo de entrega?" → Resposta com FAQ
 
 **Recursos da interface:**
-- 💬 Chat interativo
+- 💬 Chat com histórico
 - 📊 Score de confiança
-- 📚 Ver pergunta original encontrada
+- 📚 Ver FAQ original (expander)
+- 🔄 Recarregar sistema (se atualizar código)
 - 🗑️ Limpar conversa
 
-✅ **Chat web funcionando!**
+**⚠️ Se resposta não atualiza após mudar código:**
+1. Incremente `CODE_VERSION` em `simple_app.py` (linha 38)
+2. OU clique "🔄 Recarregar Sistema" na sidebar
+
+**✅ Checkpoint:** Sistema responde perguntas corretamente
 
 ---
 
-## 📝 USANDO SEU PRÓPRIO CSV
+## 🎉 Parabéns!
 
-### **Formato do CSV**
-
-Seu arquivo deve ter 2 colunas: `pergunta` e `resposta`
-
-**Exemplo: `meu_faq.csv`**
-
-```csv
-pergunta,resposta
-"Como criar conta?","Clique em Cadastre-se e preencha o formulário"
-"Esqueci senha","Clique em Esqueci Senha na tela de login"
-"Qual horário atendimento?","Segunda a sexta, 8h às 18h"
-```
-
-**Regras:**
-- ✅ Primeira linha é cabeçalho
-- ✅ Use aspas se tiver vírgulas no texto
-- ✅ Codificação UTF-8
-- ✅ Pode ter quantas linhas quiser
+Você criou um sistema RAG completo:
+- ✅ Embeddings com Vertex AI
+- ✅ LLM com Gemini
+- ✅ Dados organizados no Cloud Storage
+- ✅ Interface web funcional
+- ✅ Prompt engineering + grounding
+- ✅ Output filtering + safety
 
 ---
 
-### **Passos para Usar Seu CSV**
+## Troubleshooting
 
-**1. Upload para Cloud Shell:**
+### Erro: `CommandException: No URLs matched`
 
-Se seu CSV está no seu PC:
+**Causa:** Nome de arquivo com espaços/caracteres especiais
 
+**Solução:**
 ```bash
-# No Cloud Shell, clicar em ⋮ (menu) > Upload
-# Selecionar seu arquivo
-# Depois mover para data/
-mv ~/meu_faq.csv data/
+# Renomear arquivo no bucket
+python
+from google.cloud import storage
+client = storage.Client()
+bucket = client.bucket("seu-bucket-name")
+old_blob = bucket.blob("raw_data/arquivo com espaços.csv")
+new_blob_name = "raw_data/arquivo_sem_espacos.csv"
+bucket.copy_blob(old_blob, bucket, new_blob_name)
+old_blob.delete()
+exit()
 ```
-
 ---
 
-**2. Upload para Bucket:**
+## Próximos Passos
 
-```bash
-gsutil cp data/meu_faq.csv gs://$(gcloud config get-value project)-data/raw_data/
-```
+### 1. Usar Seu Próprio CSV
 
----
+Edite seu CSV com perguntas/respostas reais, suba para o bucket (sem espaços no nome!), atualize `.env` e rode novamente `03_use_bucket.py`.
 
-**3. Atualizar .env:**
+### 2. Customizar Respostas
 
-```bash
-nano .env
-```
+Edite o prompt template em `simple_faq_rag.py:371` para mudar o tom das respostas.
 
-Mudar linha:
-```
-RAW_DATA_PATH=raw_data/meu_faq.csv
-```
+### 3. Ajustar Parâmetros
 
-Salvar: `Ctrl+O` → `Enter` → `Ctrl+X`
+No `.env`, ajuste:
+- `TOP_K_RESULTS`: Quantos FAQs buscar (padrão: 3)
+- `SIMILARITY_THRESHOLD`: Quão similar deve ser (padrão: 0.5)
 
----
-
-**4. Executar Novamente:**
-
-```bash
-python simple_scripts/03_use_bucket.py
-```
-
-✅ **Funcionando com SEU CSV!**
-
----
-
-## 🆘 TROUBLESHOOTING COMPLETO
-
-### **Erro: "API not enabled"**
-
-```bash
-# Habilitar API novamente
-gcloud services enable aiplatform.googleapis.com
-
-# Aguardar 1 minuto
-sleep 60
-
-# Tentar novamente
-python simple_scripts/03_use_bucket.py
-```
-
----
-
-### **Erro: "Permission denied"**
-
-```bash
-# Re-autenticar
-gcloud auth application-default login
-
-# Seguir instruções no navegador
-```
-
----
-
-### **Erro: "Bucket does not exist"**
-
-```bash
-# Criar bucket
-gsutil mb -l us-central1 gs://$(gcloud config get-value project)-data
-
-# Upload CSV
-gsutil cp data/faq_example.csv gs://$(gcloud config get-value project)-data/raw_data/
-```
-
----
-
-### **Erro: "Module not found"**
-
-```bash
-# Verificar se venv está ativo
-# Deve ter (venv) no prompt
-
-# Se não tiver, ativar:
-source venv/bin/activate
-
-# Reinstalar
-pip install -r requirements.txt
-```
-
----
-
-### **Erro: "PROJECT_ID not set"**
-
-```bash
-# Verificar .env
-cat .env
-
-# Deve mostrar seu PROJECT_ID
-# Se não, editar:
-nano .env
-```
-
----
-
-### **Sistema muito lento**
-
-**É normal!** A criação de embeddings demora mesmo.
-
-Para 25 perguntas: ~1-2 minutos
-Para 100 perguntas: ~5 minutos
-Para 1000 perguntas: ~30 minutos
-
-**Dica:** Salve a base uma vez e reuse:
-
-```bash
-# Criar base (lento)
-python simple_scripts/02_save_knowledge_base.py
-
-# Depois carregar (rápido!)
-# Modifique o código para usar load_knowledge_base()
-```
-
----
-
-### **Cloud Shell desconectou**
-
-Se você fechar o navegador, perde a sessão.
-
-**Para retomar:**
-
-```bash
-# Ir para pasta
-cd demo-diy-rag
-
-# Ativar venv
-source venv/bin/activate
-
-# Configurar projeto
-gcloud config set project SEU-PROJECT-ID
-
-# Continuar de onde parou
-```
-
----
-
-## 🎓 PRÓXIMOS PASSOS
-
-### **1. Expandir seu FAQ**
-
-- Adicione mais perguntas ao CSV
-- Teste com perguntas reais de usuários
-- Atualize respostas conforme necessário
-
----
-
-### **2. Integrar no seu Sistema**
+### 4. Integrar no Seu Sistema
 
 ```python
-# No seu código Python:
 from simple_faq_rag import SimpleFAQSystem
+import os
+from dotenv import load_dotenv
 
-faq = SimpleFAQSystem(project_id="seu-projeto")
-faq.load_knowledge_base("gs://seu-bucket/knowledge_base")
+load_dotenv()
+faq = SimpleFAQSystem(project_id=os.getenv('PROJECT_ID'))
 
-result = faq.ask("pergunta do usuário")
-print(result['resposta'])
+# Carregar do bucket
+# (implementar load_from_bucket se necessário)
+
+# Ou carregar local
+faq.load_csv('seu_faq.csv')
+faq.embeddings = np.load('embeddings.npy')
+
+# Usar
+result = faq.ask_with_llm("Como criar conta?")
+print(result['resposta_gerada'])
 ```
 
 ---
 
-### **3. Monitorar Custos**
+## Resumo do Que Foi Criado
 
-- Veja quanto está gastando: https://console.cloud.google.com/billing
-- Embeddings: ~$0.01 por 1000 perguntas
-- Armazenamento: ~$0.02 por GB/mês
+**Arquitetura:**
+1. CSV → Cloud Storage (raw_data/)
+2. Vertex AI cria embeddings (768 dimensões)
+3. Embeddings salvos no Cloud Storage (embeddings/)
+4. Streamlit carrega automaticamente ao iniciar
+5. Usuário pergunta → Busca embeddings similares → Gemini gera resposta → Output filtering → Resposta final
 
-**Para 100 perguntas:** Menos de $1/mês! 💰
-
----
-
-### **4. Melhorar Qualidade**
-
-- Adicione variações de perguntas no CSV
-- Ajuste `SIMILARITY_THRESHOLD` no .env
-- Teste com usuários reais
-- Colete feedback e itere
-
----
-
-### **5. Deploy em Produção**
-
-Para colocar em produção de verdade:
-
-- Use Cloud Run para hospedar o chat app
-- Configure domínio próprio
-- Adicione autenticação
-- Configure monitoramento
-
-**Documentação:** https://cloud.google.com/run/docs
+**Requisitos da Certificação Atendidos:**
+- ✅ Prompt engineering (template com instruções)
+- ✅ Chain-of-thought (opcional, desabilitado)
+- ✅ Grounding (respostas baseadas em FAQs)
+- ✅ Output filtering (remove dados sensíveis)
+- ✅ Safety settings (Gemini filters)
+- ✅ Retrieval (embeddings + cosine similarity)
+- ✅ Generation (Gemini 1.5 Flash)
 
 ---
 
-## 📊 RESUMO COMPLETO
+## Custos Estimados
 
-### **O que você criou:**
+**Para 1000 perguntas/mês:**
+- Embeddings: ~$0.05
+- LLM: ~$0.10
+- Storage: ~$0.02
 
-✅ Sistema de FAQ inteligente
-✅ Busca semântica com IA
-✅ Dados organizados no Google Cloud
-✅ Interface linha de comando
-✅ Interface web (chat)
-✅ Base de conhecimento reutilizável
+**Total: ~$0.20/mês**
 
-### **Tecnologias usadas:**
 
-- Google Cloud Storage (dados)
-- Vertex AI (embeddings)
-- Python (código)
-- Streamlit (interface)
-
-### **Arquivos importantes:**
-
-- `simple_faq_rag.py` - Sistema principal
-- `simple_app.py` - Interface web
-- `03_use_bucket.py` - Script de execução
-- `.env` - Configurações
-- CSV no bucket - Seus dados
-
----
-
-## 📋 CHECKLIST FINAL
-
-Marque o que você completou:
-
-**Preparação:**
-- [ ] Abri Cloud Shell
-- [ ] Configurei projeto
-- [ ] Clonei repositório
-- [ ] Mudei para branch simples
-
-**Google Cloud:**
-- [ ] Habilitei API Vertex AI
-- [ ] Criei bucket
-- [ ] Organizei pastas
-- [ ] Subi CSV para bucket
-
-**Ambiente:**
-- [ ] Configurei .env
-- [ ] Criei ambiente virtual
-- [ ] Instalei dependências
-
-**Execução:**
-- [ ] Criei script 03_use_bucket.py
-- [ ] Executei com sucesso
-- [ ] Vi os testes funcionarem
-- [ ] Verifiquei bucket
-
-**Bônus:**
-- [ ] Abri chat web
-- [ ] Testei perguntas personalizadas
-- [ ] Explorei a interface
-
----
-
-## 🎉 PARABÉNS!
-
-Você criou um sistema de IA funcional do zero!
-
-**Conquistas desbloqueadas:**
-
-🏆 Usou Google Cloud
-🏆 Trabalhou com IA
-🏆 Criou embeddings
-🏆 Organizou dados profissionalmente
-🏆 Deployou sistema funcional
-
-**Compartilhe sua conquista!** 📢
-
----
-
-## 📞 SUPORTE
-
-**Problemas?**
-- Consulte a seção [Troubleshooting](#troubleshooting-completo)
-- Verifique logs no Cloud Shell
-- Teste cada fase separadamente
-
-**Documentação:**
-- README principal: `README.md`
-- Versão simples: `SIMPLE_README.md`
-- Código comentado: `simple_faq_rag.py`
-
-**Links úteis:**
-- Google Cloud Console: https://console.cloud.google.com
-- Vertex AI Docs: https://cloud.google.com/vertex-ai/docs
-- Streamlit Docs: https://docs.streamlit.io
-
----
-
-## 📄 LICENÇA E CRÉDITOS
-
-**Código:** Desenvolvido para Google Cloud Gen AI Specialization
-**Autor:** [Seu Nome]
-**Data:** Janeiro 2026
-**Versão:** 1.0 - Versão Simplificada
-
----
-
-**🎊 FIM DO GUIA PASSO A PASSO 🎊**
-
-**Você conseguiu!** 🚀
-
-Se tiver dúvidas, revise as seções específicas.
-Boa sorte com seu sistema FAQ! 😊
-
----
-
-**Última atualização:** Janeiro 2026
-**Testado em:** Google Cloud Shell
-**Tempo médio:** 20 minutos
-**Nível de sucesso:** 95%+
