@@ -534,22 +534,6 @@ sleep 60
 # Try again
 python simple_scripts/03_use_bucket.py
 ```
-
----
-
-### Error: Git push returns 403
-
-**Cause:** Branch does not have `claude/` prefix
-
-**Fix:**
-```bash
-# Create branch with correct name
-git checkout -b claude/your-feature-34uUC
-
-# Push with upstream
-git push -u origin claude/your-feature-34uUC
-```
-
 ---
 
 ### Cloud Shell disconnected
