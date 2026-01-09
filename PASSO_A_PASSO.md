@@ -63,7 +63,7 @@ git clone https://github.com/queziademetrioleo/demo-diy-rag.git
 cd demo-diy-rag
 
 # Mudar para branch do sistema simples
-git checkout claude/simple-faq-rag-34uUC
+git checkout main-branch
 
 # Verificar arquivos
 ls -la
