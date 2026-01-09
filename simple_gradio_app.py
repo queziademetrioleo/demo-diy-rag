@@ -110,7 +110,7 @@ except Exception as e:
 
 
 # Criar interface Gradio
-with gr.Blocks(title="FAQ Inteligente", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="FAQ Inteligente") as demo:
 
     gr.Markdown("""
     # 💬 FAQ Inteligente com IA
@@ -135,14 +135,9 @@ with gr.Blocks(title="FAQ Inteligente", theme=gr.themes.Soft()) as demo:
         ],
         title="",  # Título já está no Markdown acima
         description="",
-        retry_btn="🔄 Tentar Novamente",
-        undo_btn="↩️ Desfazer",
-        clear_btn="🗑️ Limpar Conversa",
-        submit_btn="📤 Enviar",
         chatbot=gr.Chatbot(
             height=500,
             show_label=False,
-            avatar_images=(None, "https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg"),
         ),
     )
 
@@ -175,4 +170,5 @@ if __name__ == "__main__":
         share=False,
         show_error=True,
         favicon_path=None,
+        theme=gr.themes.Soft(),
     )
