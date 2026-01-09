@@ -71,7 +71,7 @@ ls -la
 
 **Você deve ver:**
 - `simple_faq_rag.py` - Sistema RAG
-- `simple_app.py` - Interface Streamlit
+- `simple_gradio_app.py` - Interface Gradio
 - `simple_scripts/` - Scripts auxiliares
 - `data/faq_example.csv` - CSV de exemplo
 - `requirements.txt` - Dependências
@@ -388,24 +388,31 @@ gs://seu-projeto-data/raw_data/faq_example.csv
 
 ## 10. Rodar Interface Web
 
-### 10.1 Iniciar Streamlit
+### 10.1 Iniciar Gradio
 
 ```bash
-# Rodar app Streamlit
-streamlit run simple_app.py \
-  --server.port=8080 \
-  --server.address=0.0.0.0 \
-  --browser.serverAddress=localhost \
-  --server.enableCORS=false \
-  --server.enableXsrfProtection=false
+# Rodar app Gradio (simples!)
+python simple_gradio_app.py
 ```
 
 **Vai aparecer:**
 ```
-You can now view your Streamlit app in your browser.
+💬 SISTEMA FAQ COM IA - GRADIO
+======================================================================
 
-  Local URL: http://localhost:8080
-  Network URL: http://172.17.0.2:8080
+🚀 Carregando FAQ do bucket: gs://seu-projeto-data
+📥 Baixando embeddings...
+   ✅ 25 embeddings carregados
+📥 Baixando metadados...
+   ✅ 25 perguntas carregadas
+✅ Sistema FAQ pronto para uso!
+
+🌐 INICIANDO SERVIDOR GRADIO
+======================================================================
+
+Running on local URL:  http://0.0.0.0:8080
+
+To create a public link, set `share=True` in `launch()`.
 ```
 
 ### 10.2 Abrir no Navegador
@@ -413,31 +420,37 @@ You can now view your Streamlit app in your browser.
 **No Cloud Shell:**
 1. Procure botão **"Web Preview"** no topo
 2. Clique → **"Preview on port 8080"**
-3. Nova aba abre com o sistema!
+3. Nova aba abre com a interface de chat!
 
 ### 10.3 Usar o Sistema
 
-**O sistema carrega AUTOMATICAMENTE!**
+**Interface Gradio pronta para usar:**
 
-1. Aguarde ~10 segundos (carregar do bucket)
-2. Veja "🟢 Sistema Online" na sidebar
-3. Digite perguntas no chat:
-   - "Olá" → Cumprimento amigável
-   - "Como resetar senha?" → Resposta com FAQ
-   - "Qual prazo de entrega?" → Resposta com FAQ
+1. **Chat moderno** aparece automaticamente
+2. **Exemplos prontos** para clicar:
+   - "Olá!"
+   - "Como resetar minha senha?"
+   - "Qual o prazo de entrega?"
+   - "Vocês aceitam PIX?"
+
+3. **Digite suas perguntas** no campo de texto
+4. **Pressione Enter** ou clique "📤 Enviar"
 
 **Recursos da interface:**
-- 💬 Chat com histórico
-- 📊 Score de confiança
-- 📚 Ver FAQ original (expander)
-- 🔄 Recarregar sistema (se atualizar código)
-- 🗑️ Limpar conversa
-
-**⚠️ Se resposta não atualiza após mudar código:**
-1. Incremente `CODE_VERSION` em `simple_app.py` (linha 38)
-2. OU clique "🔄 Recarregar Sistema" na sidebar
+- 💬 **Chat com histórico** (mantém conversa)
+- 📊 **Metadados inclusos** (confiança, score, fonte)
+- 🔄 **Tentar Novamente** (re-enviar mensagem)
+- ↩️ **Desfazer** (voltar mensagem)
+- 🗑️ **Limpar Conversa** (resetar chat)
+- 🎨 **Design moderno** (tema Gradio Soft)
 
 **✅ Checkpoint:** Sistema responde perguntas corretamente
+
+**💡 Gradio é MUITO mais simples:**
+- ✅ Sem problemas de cache
+- ✅ Auto-reload funciona melhor
+- ✅ Apenas 150 linhas vs. 200+ do Streamlit
+- ✅ Interface de chat nativa (não precisa implementar)
 
 ---
 
@@ -472,6 +485,99 @@ bucket.copy_blob(old_blob, bucket, new_blob_name)
 old_blob.delete()
 exit()
 ```
+
+---
+
+### Erro: `python-dotenv could not parse statement`
+
+**Causa:** Comentários decorativos no .env
+
+**Solução:**
+```bash
+# Editar .env
+nano .env
+
+# Remover TODOS os comentários decorativos (linhas com ====)
+# Deixar APENAS linhas KEY=value
+# Salvar: Ctrl+O, Enter, Ctrl+X
+```
+
+---
+
+### Erro: `AttributeError: module 'pkgutil' has no attribute 'ImpImporter'`
+
+**Causa:** numpy incompatível com Python 3.12
+
+**Solução:** Já corrigido no requirements.txt! Se aparecer:
+```bash
+pip install --upgrade numpy scikit-learn
+```
+
+---
+
+### Erro: `Permission Denied` ou `API not enabled`
+
+**Solução:**
+```bash
+# Re-habilitar APIs
+gcloud services enable \
+  aiplatform.googleapis.com \
+  storage-api.googleapis.com
+
+# Re-autenticar
+gcloud auth application-default login
+
+# Aguardar 1 minuto
+sleep 60
+
+# Tentar novamente
+python simple_scripts/03_use_bucket.py
+```
+
+---
+
+### Erro: Git push retorna 403
+
+**Causa:** Branch não tem prefixo `claude/`
+
+**Solução:**
+```bash
+# Criar branch com nome correto
+git checkout -b claude/sua-feature-34uUC
+
+# Push com upstream
+git push -u origin claude/sua-feature-34uUC
+```
+
+---
+
+### Cloud Shell desconectou
+
+**Solução:**
+```bash
+# Voltar para pasta
+cd demo-diy-rag
+
+# Reativar ambiente virtual
+source venv/bin/activate
+
+# Verificar projeto
+gcloud config get-value project
+
+# Continuar de onde parou
+```
+
+---
+
+### Sistema muito lento
+
+**É normal!** Criação de embeddings demora:
+- 25 perguntas: ~2 minutos
+- 100 perguntas: ~5 minutos
+- 1000 perguntas: ~30 minutos
+
+**Dica:** Após criar uma vez, os embeddings ficam salvos no bucket. Próximas execuções são rápidas (só carrega)!
+
 ---
 
 ## Próximos Passos
@@ -520,7 +626,7 @@ print(result['resposta_gerada'])
 1. CSV → Cloud Storage (raw_data/)
 2. Vertex AI cria embeddings (768 dimensões)
 3. Embeddings salvos no Cloud Storage (embeddings/)
-4. Streamlit carrega automaticamente ao iniciar
+4. Gradio carrega automaticamente ao iniciar
 5. Usuário pergunta → Busca embeddings similares → Gemini gera resposta → Output filtering → Resposta final
 
 **Requisitos da Certificação Atendidos:**

@@ -6,7 +6,7 @@ Sistema FAQ inteligente usando **RAG (Retrieval Augmented Generation)** com:
 - 🔍 **Embeddings** (Vertex AI text-embedding-004)
 - 🤖 **LLM** (Gemini 1.5 Flash)
 - ☁️ **Cloud Storage** (dados organizados em buckets)
-- 🎨 **Interface Web** (Streamlit)
+- 🎨 **Interface Web** (Gradio)
 
 ## 🎯 O Que Este Sistema Faz
 
@@ -30,7 +30,7 @@ Sistema:
 ```
 demo-diy-rag/
 ├── simple_faq_rag.py          # Sistema RAG completo (embeddings + LLM)
-├── simple_app.py              # Interface Streamlit (auto-load do bucket)
+├── simple_gradio_app.py       # Interface Gradio (auto-load do bucket)
 ├── requirements.txt           # Dependências Python
 ├── .env                       # Configurações (não commitar!)
 ├── .env.example              # Exemplo de configuração
@@ -117,18 +117,15 @@ Isso vai:
 ### Passo 5: Rodar Interface Web
 
 ```bash
-# Streamlit no Cloud Shell (portas específicas!)
-streamlit run simple_app.py \
-  --server.port=8080 \
-  --server.address=0.0.0.0 \
-  --browser.serverAddress=localhost \
-  --server.enableCORS=false \
-  --server.enableXsrfProtection=false
+# Gradio no Cloud Shell
+python simple_gradio_app.py
 ```
 
-Clique em "Web Preview" (porta 8080) no Cloud Shell.
+O sistema carrega automaticamente do bucket (~10 segundos).
 
-**⚠️ Se código não atualiza:** Clique no botão "🔄 Recarregar Sistema" na sidebar!
+Clique em "Web Preview" (porta 8080) no Cloud Shell para abrir a interface!
+
+**Interface pronta:** Chat moderno com histórico, exemplos e metadados das respostas.
 
 ## 📊 Formato do CSV
 
@@ -172,8 +169,9 @@ O código detecta automaticamente e mapeia para formato interno.
          │
          ▼
 ┌─────────────────┐
-│  Streamlit App  │  ← Auto-load ao iniciar
-│ (simple_app.py) │
+│   Gradio App    │  ← Auto-load ao iniciar
+│ (simple_gradio  │
+│    _app.py)     │
 └────────┬────────┘
          │
     User Query
@@ -208,7 +206,7 @@ O código detecta automaticamente e mapeia para formato interno.
 | **LLM** | Gemini 1.5 Flash | Rápido, barato, boa qualidade |
 | **Busca** | scikit-learn cosine_similarity | Simples, sem infra Vector Search |
 | **Storage** | Cloud Storage | Organizado, escalável |
-| **Interface** | Streamlit | Rápido de desenvolver, bom UX |
+| **Interface** | Gradio | Simples (60 linhas), chat nativo, auto-reload |
 | **Python** | 3.12 (Cloud Shell) | Versão default do ambiente |
 
 ## ✅ Requisitos da Certificação
@@ -264,13 +262,7 @@ BUCKET_NAME=meu-bucket
 **Causa:** numpy incompatível com Python 3.12
 **Solução:** Já corrigido no requirements.txt (numpy>=1.26.0)
 
-### 4. Streamlit não atualiza código
-**Causa:** Cache (@st.cache_resource) mantém versão antiga
-**Solução:**
-1. Incrementar `CODE_VERSION` em `simple_app.py` (linha 38)
-2. OU clicar em "🔄 Recarregar Sistema" na sidebar
-
-### 5. Git push retorna 403
+### 4. Git push retorna 403
 **Causa:** Branch sem prefixo `claude/`
 **Solução:**
 ```bash
