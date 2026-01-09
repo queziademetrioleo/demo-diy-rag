@@ -81,7 +81,7 @@ def chat_function(message, history):
 
 # Initialize FAQ system
 print("\n" + "="*70)
-print("FAQ CHATBOT - LOADING")
+print("RAG CHATBOT - LOADING")
 print("="*70 + "\n")
 
 try:
@@ -104,11 +104,11 @@ with gr.Blocks(title="FAQ Chatbot") as demo:
     chatbot = gr.ChatInterface(
         fn=chat_function,
         examples=[
-            "Hello!",
-            "How do I reset my password?",
-            "What's the delivery time?",
-            "Do you accept credit cards?",
-            "What's your return policy?",
+            "I'm new to Nimbus. What is Nimbus Benefits Platform and what does it help companies do?",
+            "What is the dispute time window in Nimbus?",
+            "How do I decide whether an incident is SEV-1 or SEV-2?",
+            "How do I explain why a transaction changed status after the user first saw it?",
+            "Before escalating an incident, what should I confirm to classify severity correctly?",
         ],
         chatbot=gr.Chatbot(
             height=600,
