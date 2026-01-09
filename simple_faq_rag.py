@@ -65,7 +65,7 @@ class SimpleFAQSystem:
         self.embedding_model = TextEmbeddingModel.from_pretrained("text-embedding-004")
 
         # Modelo LLM para geração (Gemini)
-        self.llm_model = GenerativeModel("gemini-1.5-flash")
+        self.llm_model = GenerativeModel("gemini-2.5-flash")
 
         # Configuração do LLM
         self.generation_config = GenerationConfig(
