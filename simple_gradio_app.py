@@ -48,7 +48,7 @@ def load_faq_from_bucket():
     with tempfile.NamedTemporaryFile(delete=False, suffix='.csv', mode='w') as tmp_meta:
         metadata_blob.download_to_filename(tmp_meta.name)
         faq.load_csv(tmp_meta.name)
-        print(f"   ✅ {len(faq.faqs)} perguntas carregadas")
+        print(f"   ✅ {len(faq.df)} perguntas carregadas")
 
     print("✅ Sistema FAQ pronto para uso!\n")
     return faq
