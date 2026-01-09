@@ -1,6 +1,6 @@
 """
-🤖 Chat App SIMPLES - Sistema FAQ
-Carrega automaticamente do Cloud Storage - PRONTO PARA USO!
+🤖 Simple Chat App - FAQ System
+Auto-loads from Cloud Storage - READY TO USE!
 """
 
 import streamlit as st
@@ -12,16 +12,16 @@ import numpy as np
 from google.cloud import storage
 from dotenv import load_dotenv
 
-# Carregar .env
+# Load .env
 load_dotenv()
 
-# Adicionar diretório ao path
+# Add directory to path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from simple_faq_rag import SimpleFAQSystem
 
 # ============================================
-# CONFIGURAÇÃO DA PÁGINA
+# PAGE CONFIGURATION
 # ============================================
 
 st.set_page_config(
@@ -31,29 +31,29 @@ st.set_page_config(
 )
 
 # ============================================
-# CARREGAR SISTEMA AUTOMATICAMENTE (CACHE)
+# AUTO-LOAD SYSTEM (CACHE)
 # ============================================
 
-# Versão do código (incrementar quando atualizar simple_faq_rag.py)
+# Code version (increment when updating simple_faq_rag.py)
 CODE_VERSION = "2.0.0-llm"
 
-@st.cache_resource(show_spinner="🚀 Carregando FAQ do Cloud Storage...")
+@st.cache_resource(show_spinner="🚀 Loading FAQ from Cloud Storage...")
 def load_faq_system(_version):
     """
-    Carrega o sistema FAQ automaticamente do Cloud Storage.
-    Usa cache para não recarregar toda vez.
+    Load the FAQ system automatically from Cloud Storage.
+    Uses cache so it doesn't reload every time.
 
     Args:
-        _version: Versão do código (força reload quando muda)
+        _version: Code version (forces reload when it changes)
     """
     project_id = os.getenv("PROJECT_ID")
     bucket_name = os.getenv("BUCKET_NAME")
 
     if not project_id or not bucket_name:
-        st.error("❌ Configure .env com PROJECT_ID e BUCKET_NAME")
+        st.error("❌ Configure .env with PROJECT_ID and BUCKET_NAME")
         st.stop()
 
-    # Inicializar Cloud Storage
+    # Initialize Cloud Storage
     storage_client = storage.Client()
     bucket = storage_client.bucket(bucket_name)
 
@@ -67,23 +67,23 @@ def load_faq_system(_version):
     temp_metadata = tempfile.NamedTemporaryFile(delete=False, suffix='.csv')
     metadata_blob.download_to_filename(temp_metadata.name)
 
-    # Criar sistema
+    # Create system
     faq = SimpleFAQSystem(project_id=project_id)
     faq.load_csv(temp_metadata.name)
     faq.embeddings = np.load(temp_embeddings.name)
 
     return faq
 
-# Carregar sistema (só executa 1 vez graças ao cache)
-# Passa CODE_VERSION para forçar reload quando código muda
+# Load system (only runs once thanks to cache)
+# Pass CODE_VERSION to force reload when code changes
 faq_system = load_faq_system(CODE_VERSION)
 
 # ============================================
 # HEADER
 # ============================================
 
-st.title("💬 FAQ Assistant com IA")
-st.markdown(f"*RAG com Gemini • {len(faq_system.df)} perguntas na base*")
+st.title("💬 FAQ Assistant with AI")
+st.markdown(f"*RAG with Gemini • {len(faq_system.df)} questions in the base*")
 st.markdown("---")
 
 # ============================================
@@ -98,10 +98,10 @@ if 'messages' not in st.session_state:
 # ============================================
 
 with st.sidebar:
-    st.header("ℹ️ Informações")
+    st.header("ℹ️ Information")
 
-    st.success("🟢 Sistema Online")
-    st.metric("Perguntas disponíveis", len(faq_system.df))
+    st.success("🟢 System Online")
+    st.metric("Available questions", len(faq_system.df))
 
     st.markdown("---")
     st.caption("**Project ID:**")
@@ -109,102 +109,102 @@ with st.sidebar:
 
     st.markdown("---")
 
-    # Botão para limpar conversa
-    if st.button("🗑️ Limpar Conversa"):
+    # Button to clear conversation
+    if st.button("🗑️ Clear Conversation"):
         st.session_state.messages = []
         st.rerun()
 
-    # Botão para recarregar sistema (limpar cache)
-    if st.button("🔄 Recarregar Sistema", help="Limpa cache e recarrega código atualizado"):
+    # Button to reload system (clear cache)
+    if st.button("🔄 Reload System", help="Clears cache and reloads updated code"):
         st.cache_resource.clear()
         st.rerun()
 
     st.markdown("---")
 
-    # Info sobre RAG
-    with st.expander("ℹ️ Como funciona"):
+    # Info about RAG
+    with st.expander("ℹ️ How it works"):
         st.markdown("""
 **RAG (Retrieval Augmented Generation):**
 
 1. **Retrieval** 🔍
-   - Busca FAQs relevantes usando embeddings
+   - Finds relevant FAQs using embeddings
 
 2. **Generation** 🤖
-   - Gemini gera resposta baseada nos FAQs
-   - Grounded em dados reais
-   - Prompt engineering aplicado
+   - Gemini generates the answer based on FAQs
+   - Grounded in real data
+   - Prompt engineering applied
 
 3. **Output Filtering** ✅
-   - Filtra informações sensíveis
-   - Safety settings ativados
+   - Filters sensitive information
+   - Safety settings enabled
         """)
 
     st.markdown("---")
     st.caption("☁️ Powered by Vertex AI + Gemini")
 
 # ============================================
-# CHAT PRINCIPAL
+# MAIN CHAT
 # ============================================
 
-# Mostrar histórico
+# Show history
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
         if "score" in msg:
             score = msg["score"]
             if score >= 0.8:
-                st.markdown(f"**Confiança:** :green[{score:.0%}]")
+                st.markdown(f"**Confidence:** :green[{score:.0%}]")
             elif score >= 0.6:
-                st.markdown(f"**Confiança:** :orange[{score:.0%}]")
+                st.markdown(f"**Confidence:** :orange[{score:.0%}]")
             else:
-                st.markdown(f"**Confiança:** :red[{score:.0%}]")
+                st.markdown(f"**Confidence:** :red[{score:.0%}]")
 
-# Input do usuário
-if prompt := st.chat_input("Digite sua pergunta..."):
+# User input
+if prompt := st.chat_input("Type your question..."):
 
-    # Adicionar mensagem do usuário
+    # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Buscar resposta
+    # Fetch answer
     with st.chat_message("assistant"):
-        with st.spinner("🤖 Processando com IA..."):
+        with st.spinner("🤖 Processing with AI..."):
             try:
-                # Usar RAG completo com LLM (Gemini)
+                # Use full RAG with LLM (Gemini)
                 result = faq_system.ask_with_llm(prompt)
 
                 if result['found']:
-                    # Resposta gerada pelo LLM
-                    resposta_gerada = result['resposta_gerada']
+                    # LLM-generated answer
+                    generated_answer = result['generated_answer']
                     score = result['score']
 
-                    # Mostrar resposta gerada
-                    st.markdown(resposta_gerada)
+                    # Display answer
+                    st.markdown(generated_answer)
 
-                    # Mostrar fonte (FAQ original) em expander
-                    with st.expander("📚 Ver FAQ original"):
-                        st.markdown(f"**Pergunta encontrada:** {result['pergunta_encontrada']}")
-                        st.markdown(f"**Resposta original:** {result['resposta_original']}")
-                        st.caption(f"✨ Resposta reformulada por IA (Gemini)")
+                    # Show source (original FAQ) in expander
+                    with st.expander("📚 View original FAQ"):
+                        st.markdown(f"**Matched question:** {result['question_found']}")
+                        st.markdown(f"**Original answer:** {result['original_answer']}")
+                        st.caption("✨ Answer rewritten by AI (Gemini)")
 
-                    # Mostrar confiança
+                    # Show confidence
                     if score >= 0.8:
-                        st.markdown(f"**Confiança:** :green[{score:.0%}]")
+                        st.markdown(f"**Confidence:** :green[{score:.0%}]")
                     elif score >= 0.6:
-                        st.markdown(f"**Confiança:** :orange[{score:.0%}]")
+                        st.markdown(f"**Confidence:** :orange[{score:.0%}]")
                     else:
-                        st.markdown(f"**Confiança:** :red[{score:.0%}]")
+                        st.markdown(f"**Confidence:** :red[{score:.0%}]")
 
-                    # Salvar no histórico
+                    # Save to history
                     st.session_state.messages.append({
                         "role": "assistant",
-                        "content": resposta_gerada,
+                        "content": generated_answer,
                         "score": score
                     })
                 else:
-                    msg = result.get('resposta_gerada', "Desculpe, não encontrei uma resposta relevante para essa pergunta. 😕")
+                    msg = result.get('generated_answer', "Sorry, I couldn't find a relevant answer to that question. 😕")
                     st.markdown(msg)
                     st.session_state.messages.append({
                         "role": "assistant",
@@ -212,7 +212,7 @@ if prompt := st.chat_input("Digite sua pergunta..."):
                     })
 
             except Exception as e:
-                error_msg = f"❌ Erro ao buscar resposta: {e}"
+                error_msg = f"❌ Error fetching answer: {e}"
                 st.error(error_msg)
                 st.session_state.messages.append({
                     "role": "assistant",
@@ -224,4 +224,4 @@ if prompt := st.chat_input("Digite sua pergunta..."):
 # ============================================
 
 st.markdown("---")
-st.caption("🤖 RAG (Retrieval Augmented Generation) • Powered by Vertex AI + Gemini 1.5 Flash")
+st.caption("🤖 RAG (Retrieval Augmented Generation) • Powered by Vertex AI + Gemini 2.5 Flash")

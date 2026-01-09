@@ -1,164 +1,163 @@
 #!/usr/bin/env python3
 """
-Script 01: Testar Sistema FAQ Simples
+Script 01: Test Simple FAQ System
 
-Este script testa o sistema FAQ de forma interativa.
-É o jeito mais fácil de começar!
+This script tests the FAQ system interactively.
+It is the easiest way to get started!
 """
 
 import sys
 import os
 from pathlib import Path
 
-# Adicionar diretório raiz ao path
+# Add project root to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
 from simple_faq_rag import SimpleFAQSystem
-from loguru import logger
 
 
 def main():
-    """Testa o sistema FAQ."""
+    """Test the FAQ system."""
 
     print("="*70)
-    print("🤖 TESTE DO SISTEMA FAQ SIMPLES")
+    print("🤖 SIMPLE FAQ SYSTEM TEST")
     print("="*70)
 
-    # Carregar configurações
+    # Load configuration
     load_dotenv()
 
     project_id = os.getenv("PROJECT_ID")
     if not project_id:
-        print("\n❌ ERRO: PROJECT_ID não configurado no .env")
-        print("\n📝 Como corrigir:")
-        print("1. Copie .env.example para .env:")
+        print("\n❌ ERROR: PROJECT_ID not configured in .env")
+        print("\n📝 How to fix:")
+        print("1. Copy .env.example to .env:")
         print("   cp .env.example .env")
-        print("2. Edite .env e preencha PROJECT_ID")
+        print("2. Edit .env and fill PROJECT_ID")
         return 1
 
-    print(f"\n✅ Projeto: {project_id}")
+    print(f"\n✅ Project: {project_id}")
 
-    # Verificar CSV
+    # Check CSV
     csv_path = "data/faq_example.csv"
     if not Path(csv_path).exists():
-        print(f"\n❌ ERRO: CSV não encontrado: {csv_path}")
-        print("\n💡 Use o CSV de exemplo incluído no projeto!")
+        print(f"\n❌ ERROR: CSV not found: {csv_path}")
+        print("\n💡 Use the example CSV included in the project!")
         return 1
 
-    print(f"✅ CSV encontrado: {csv_path}")
+    print(f"✅ CSV found: {csv_path}")
 
-    # Inicializar sistema
+    # Initialize system
     print("\n" + "="*70)
-    print("PASSO 1: Inicializando sistema...")
+    print("STEP 1: Initializing system...")
     print("="*70)
 
     try:
         faq = SimpleFAQSystem(project_id=project_id)
-        print("✅ Sistema inicializado!")
+        print("✅ System initialized!")
     except Exception as e:
-        print(f"❌ Erro ao inicializar: {e}")
-        print("\n💡 Verifique se você está autenticado:")
+        print(f"❌ Error initializing: {e}")
+        print("\n💡 Make sure you are authenticated:")
         print("   gcloud auth application-default login")
         return 1
 
-    # Carregar CSV
+    # Load CSV
     print("\n" + "="*70)
-    print("PASSO 2: Carregando Questionss e Answerss...")
+    print("STEP 2: Loading questions and answers...")
     print("="*70)
 
     try:
         faq.load_csv(csv_path)
         stats = faq.get_stats()
-        print(f"✅ {stats['total_Questionss']} Questionss carregadas!")
+        print(f"✅ {stats['total_questions']} questions loaded!")
     except Exception as e:
-        print(f"❌ Erro ao carregar CSV: {e}")
+        print(f"❌ Error loading CSV: {e}")
         return 1
 
-    # Criar base de conhecimento
+    # Create knowledge base
     print("\n" + "="*70)
-    print("PASSO 3: Criando base de conhecimento...")
+    print("STEP 3: Creating knowledge base...")
     print("="*70)
-    print("⏳ Gerando embeddings... (pode levar 1-2 minutos)")
+    print("⏳ Generating embeddings... (may take 1-2 minutes)")
 
     try:
         faq.create_knowledge_base()
-        print("✅ Base de conhecimento criada!")
+        print("✅ Knowledge base created!")
     except Exception as e:
-        print(f"❌ Erro ao criar base: {e}")
-        print("\n💡 Verifique se a API está habilitada:")
+        print(f"❌ Error creating knowledge base: {e}")
+        print("\n💡 Make sure the API is enabled:")
         print("   gcloud services enable aiplatform.googleapis.com")
         return 1
 
-    # Testar Questionss
+    # Test questions
     print("\n" + "="*70)
-    print("PASSO 4: Testando Questionss...")
+    print("STEP 4: Testing questions...")
     print("="*70)
 
     test_questions = [
-        "Como resetar senha?",
-        "Quanto tempo demora a entrega?",
-        "Posso devolver?",
-        "Aceitam PIX?"
+        "How do I reset my password?",
+        "How long does delivery take?",
+        "Can I return an order?",
+        "Do you accept PIX?"
     ]
 
     for i, question in enumerate(test_questions, 1):
-        print(f"\n📝 Teste {i}/{len(test_questions)}")
-        print(f"❓ Questions: {question}")
+        print(f"\n📝 Test {i}/{len(test_questions)}")
+        print(f"❓ Question: {question}")
 
         try:
             result = faq.ask(question)
 
             if result['found']:
-                print(f"✅ Answers encontrada (confiança: {result['confidence']})")
-                print(f"💬 {result['Answers']}")
+                print(f"✅ Answer found (confidence: {result['confidence']})")
+                print(f"💬 {result['answer']}")
                 print(f"📊 Score: {result['score']:.1%}")
-                print(f"🔗 Questions original: {result['Questions_encontrada']}")
+                print(f"🔗 Original question: {result['question_found']}")
             else:
-                print("❌ Nenhuma Answers encontrada")
+                print("❌ No answer found")
 
         except Exception as e:
-            print(f"❌ Erro: {e}")
+            print(f"❌ Error: {e}")
 
-    # Modo interativo
+    # Interactive mode
     print("\n" + "="*70)
-    print("MODO INTERATIVO - Faça suas Questionss!")
+    print("INTERACTIVE MODE - Ask your questions!")
     print("="*70)
-    print("Digite 'sair' para encerrar\n")
+    print("Type 'exit' to quit\n")
 
     while True:
         try:
-            question = input("❓ Sua Questions: ").strip()
+            question = input("❓ Your question: ").strip()
 
             if not question:
                 continue
 
-            if question.lower() in ['sair', 'exit', 'quit', 'q']:
-                print("\n👋 Até logo!")
+            if question.lower() in ['exit', 'quit', 'q']:
+                print("\n👋 Goodbye!")
                 break
 
             result = faq.ask(question)
 
             if result['found']:
-                print(f"\n💬 Answers (confiança: {result['confidence']}):")
-                print(f"   {result['Answers']}")
+                print(f"\n💬 Answer (confidence: {result['confidence']}):")
+                print(f"   {result['answer']}")
                 print(f"   Score: {result['score']:.1%}\n")
             else:
-                print("\n❌ Desculpe, não encontrei uma Answers para isso.\n")
+                print("\n❌ Sorry, I couldn't find an answer for that.\n")
 
         except KeyboardInterrupt:
-            print("\n\n👋 Até logo!")
+            print("\n\n👋 Goodbye!")
             break
         except Exception as e:
-            print(f"❌ Erro: {e}\n")
+            print(f"❌ Error: {e}\n")
 
     print("\n" + "="*70)
-    print("✅ TESTE CONCLUÍDO COM SUCESSO!")
+    print("✅ TEST COMPLETED SUCCESSFULLY!")
     print("="*70)
-    print("\n📚 Próximos passos:")
-    print("1. Use seu próprio CSV com Questionss/Answerss")
-    print("2. Execute: python simple_scripts/02_save_knowledge_base.py")
-    print("3. Depois: python simple_gradio_app.py")
+    print("\n📚 Next steps:")
+    print("1. Use your own CSV with Questions/Answers")
+    print("2. Run: python simple_scripts/02_save_knowledge_base.py")
+    print("3. Then: python simple_gradio_app.py")
     print("="*70)
 
     return 0

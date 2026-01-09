@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
 """
-Script 00: Validação de Setup
-Verifica se tudo está configurado corretamente ANTES de executar.
-Execute SEMPRE antes dos outros scripts!
+Script 00: Setup Validation
+Checks if everything is configured correctly BEFORE running.
+Always run this before the other scripts.
 """
 
 import os
 import sys
 from pathlib import Path
 
-# Adicionar src ao path
+# Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from dotenv import load_dotenv
 
 
 def validate_env():
-    """Valida variáveis de ambiente."""
+    """Validate environment variables."""
     load_dotenv()
 
     required_vars = {
-        "PROJECT_ID": "ID do projeto Google Cloud",
-        "BUCKET_NAME": "Nome do bucket Cloud Storage",
-        "LOCATION": "Região do Google Cloud"
+        "PROJECT_ID": "Google Cloud project ID",
+        "BUCKET_NAME": "Cloud Storage bucket name",
+        "LOCATION": "Google Cloud region"
     }
 
     missing = []
@@ -34,13 +34,13 @@ def validate_env():
             print(f"  ✓ {var}: {value}")
 
     if missing:
-        print(f"\n❌ Variáveis faltando no .env:")
+        print("\n❌ Missing variables in .env:")
         for m in missing:
             print(m)
-        print("\n📝 Como corrigir:")
-        print("1. Copie .env.example para .env:")
+        print("\n📝 How to fix:")
+        print("1. Copy .env.example to .env:")
         print("   cp .env.example .env")
-        print("\n2. Edite .env e preencha as variáveis:")
+        print("\n2. Edit .env and fill the variables:")
         print("   nano .env")
         return False
 
@@ -48,7 +48,7 @@ def validate_env():
 
 
 def validate_gcloud_auth():
-    """Valida autenticação gcloud."""
+    """Validate gcloud authentication."""
     import subprocess
 
     try:
@@ -60,31 +60,31 @@ def validate_gcloud_auth():
         )
 
         if result.returncode == 0 and "ACTIVE" in result.stdout:
-            # Extrair email ativo
+            # Extract active email
             for line in result.stdout.split('\n'):
                 if '*' in line or 'ACTIVE' in line:
-                    print(f"  ✓ Autenticado")
+                    print("  ✓ Authenticated")
                     break
             return True
         else:
-            print("  ✗ Não autenticado")
-            print("\n📝 Como corrigir:")
+            print("  ✗ Not authenticated")
+            print("\n📝 How to fix:")
             print("  gcloud auth login")
             print("  gcloud auth application-default login")
             return False
 
     except FileNotFoundError:
-        print("  ✗ gcloud CLI não encontrado")
-        print("\n📝 Instale gcloud CLI:")
+        print("  ✗ gcloud CLI not found")
+        print("\n📝 Install gcloud CLI:")
         print("  https://cloud.google.com/sdk/docs/install")
         return False
     except Exception as e:
-        print(f"  ⚠️  Erro ao verificar: {e}")
+        print(f"  ⚠️  Error checking auth: {e}")
         return False
 
 
 def validate_project_access():
-    """Valida acesso ao projeto."""
+    """Validate project access."""
     import subprocess
     from dotenv import load_dotenv
 
@@ -92,7 +92,7 @@ def validate_project_access():
     project_id = os.getenv("PROJECT_ID")
 
     if not project_id:
-        print("  ⚠️  PROJECT_ID não definido, pulando validação")
+        print("  ⚠️  PROJECT_ID not defined, skipping validation")
         return True
 
     try:
@@ -104,20 +104,20 @@ def validate_project_access():
         )
 
         if result.returncode == 0:
-            print(f"  ✓ Acesso ao projeto: {project_id}")
+            print(f"  ✓ Access to project: {project_id}")
             return True
         else:
-            print(f"  ✗ Sem acesso ao projeto: {project_id}")
-            print("\n📝 Verifique se o projeto existe e você tem permissão")
+            print(f"  ✗ No access to project: {project_id}")
+            print("\n📝 Make sure the project exists and you have permission")
             return False
 
     except Exception as e:
-        print(f"  ⚠️  Erro ao verificar projeto: {e}")
+        print(f"  ⚠️  Error checking project: {e}")
         return True
 
 
 def validate_apis_enabled():
-    """Valida se APIs estão habilitadas."""
+    """Validate that required APIs are enabled."""
     import subprocess
     from dotenv import load_dotenv
 
@@ -125,7 +125,7 @@ def validate_apis_enabled():
     project_id = os.getenv("PROJECT_ID")
 
     if not project_id:
-        print("  ⚠️  PROJECT_ID não definido, pulando validação")
+        print("  ⚠️  PROJECT_ID not defined, skipping validation")
         return True
 
     required_apis = [
@@ -142,7 +142,7 @@ def validate_apis_enabled():
         )
 
         if result.returncode != 0:
-            print(f"  ⚠️  Não foi possível verificar APIs")
+            print("  ⚠️  Could not verify APIs")
             return True
 
         missing_apis = []
@@ -154,19 +154,19 @@ def validate_apis_enabled():
                 missing_apis.append(api)
 
         if missing_apis:
-            print("\n📝 Habilite as APIs faltantes:")
+            print("\n📝 Enable missing APIs:")
             print(f"  gcloud services enable {' '.join(missing_apis)} --project={project_id}")
             return False
 
         return True
 
     except Exception as e:
-        print(f"  ⚠️  Erro ao verificar APIs: {e}")
+        print(f"  ⚠️  Error checking APIs: {e}")
         return True
 
 
 def validate_python_packages():
-    """Valida se pacotes Python estão instalados."""
+    """Validate that Python packages are installed."""
     required_packages = {
         "google-cloud-aiplatform": "google.cloud.aiplatform",
         "google-cloud-storage": "google.cloud.storage",
@@ -188,7 +188,7 @@ def validate_python_packages():
             missing.append(package_name)
 
     if missing:
-        print("\n📝 Instale os pacotes faltantes:")
+        print("\n📝 Install missing packages:")
         print("  pip install -r requirements.txt")
         return False
 
@@ -196,7 +196,7 @@ def validate_python_packages():
 
 
 def validate_file_structure():
-    """Valida estrutura de arquivos."""
+    """Validate file structure."""
     required_files = [
         "README.md",
         "requirements.txt",
@@ -224,28 +224,28 @@ def validate_file_structure():
             missing.append(file_path)
 
     if missing:
-        print("\n⚠️  Alguns arquivos estão faltando!")
-        print("Certifique-se de que o repositório está completo.")
+        print("\n⚠️  Some files are missing!")
+        print("Make sure the repository is complete.")
         return False
 
     return True
 
 
 def main():
-    """Executa todas as validações."""
+    """Run all validations."""
     print("="*70)
-    print("🔍 VALIDAÇÃO DE SETUP - Demo DIY RAG")
+    print("🔍 SETUP VALIDATION - Demo DIY RAG")
     print("="*70)
-    print("\nEste script verifica se tudo está configurado corretamente.")
-    print("Execute isso ANTES de rodar os outros scripts!\n")
+    print("\nThis script checks if everything is configured correctly.")
+    print("Run this BEFORE running the other scripts!\n")
 
     checks = [
-        ("📁 Estrutura de Arquivos", validate_file_structure),
-        ("🔧 Variáveis de Ambiente (.env)", validate_env),
-        ("📦 Pacotes Python", validate_python_packages),
-        ("🔐 Autenticação gcloud", validate_gcloud_auth),
-        ("🎯 Acesso ao Projeto", validate_project_access),
-        ("🌐 APIs do Google Cloud", validate_apis_enabled),
+        ("📁 File Structure", validate_file_structure),
+        ("🔧 Environment Variables (.env)", validate_env),
+        ("📦 Python Packages", validate_python_packages),
+        ("🔐 gcloud Authentication", validate_gcloud_auth),
+        ("🎯 Project Access", validate_project_access),
+        ("🌐 Google Cloud APIs", validate_apis_enabled),
     ]
 
     results = []
@@ -256,28 +256,28 @@ def main():
             result = check_func()
             results.append(result)
         except Exception as e:
-            print(f"  ❌ Erro inesperado: {e}")
+            print(f"  ❌ Unexpected error: {e}")
             results.append(False)
 
     print("\n" + "="*70)
 
     if all(results):
-        print("✅ TODAS AS VALIDAÇÕES PASSARAM!")
+        print("✅ ALL VALIDATIONS PASSED!")
         print("="*70)
-        print("\n🎉 Tudo configurado corretamente!")
-        print("\n📋 Próximos passos:")
+        print("\n🎉 Everything is configured correctly!")
+        print("\n📋 Next steps:")
         print("  1. python scripts/01_download_data.py")
         print("  2. python scripts/02_create_embeddings.py")
         print("  3. python scripts/03_setup_vector_search.py  (30-45 min)")
         print("  4. python scripts/05_test_api.py")
         print("  5. streamlit run app.py")
-        print("\n💡 Dica: Leia CRITICAL_FIXES.md para detalhes importantes!")
+        print("\n💡 Tip: Read CRITICAL_FIXES.md for important details!")
         return 0
     else:
-        print("❌ ALGUMAS VALIDAÇÕES FALHARAM")
+        print("❌ SOME VALIDATIONS FAILED")
         print("="*70)
-        print("\n⚠️  Corrija os problemas acima antes de continuar.")
-        print("\n📖 Para ajuda detalhada, consulte:")
+        print("\n⚠️  Fix the issues above before continuing.")
+        print("\n📖 For detailed help, see:")
         print("  - CRITICAL_FIXES.md")
         print("  - docs/TROUBLESHOOTING.md")
         print("  - README.md")

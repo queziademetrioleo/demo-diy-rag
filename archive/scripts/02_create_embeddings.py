@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Script 02: Criação de embeddings
-Gera embeddings usando Vertex AI para todos os produtos.
+Script 02: Create embeddings
+Generates embeddings using Vertex AI for all products.
 """
 
 import sys
@@ -25,28 +25,28 @@ def main():
     model_name = os.getenv("EMBEDDING_MODEL", "text-embedding-004")
 
     logger.info("="*60)
-    logger.info("SCRIPT 02: Criação de Embeddings")
+    logger.info("SCRIPT 02: Create Embeddings")
     logger.info("="*60)
 
-    # Carregar dados
-    logger.info("\nCarregando dados do GCS...")
+    # Load data
+    logger.info("\nLoading data from GCS...")
     loader = DataLoader(project_id=project_id, bucket_name=bucket_name)
     df = loader.download_from_gcs(data_path)
 
-    # Inicializar gerador
-    logger.info(f"\nInicializando {model_name}...")
+    # Initialize generator
+    logger.info(f"\nInitializing {model_name}...")
     generator = EmbeddingGenerator(
         project_id=project_id,
         location=location,
         model_name=model_name
     )
 
-    # Criar embeddings
-    logger.info("\nGerando embeddings (isso pode demorar)...")
+    # Create embeddings
+    logger.info("\nGenerating embeddings (this may take a while)...")
     embeddings, metadata = generator.create_embeddings_dataset(df)
 
-    # Salvar
-    logger.info("\nSalvando embeddings...")
+    # Save
+    logger.info("\nSaving embeddings...")
     uris = generator.save_embeddings_to_gcs(
         embeddings=embeddings,
         metadata=metadata,
@@ -60,15 +60,15 @@ def main():
     )
 
     logger.info("\n" + "="*60)
-    logger.info("✅ EMBEDDINGS CRIADOS COM SUCESSO!")
+    logger.info("✅ EMBEDDINGS CREATED SUCCESSFULLY!")
     logger.info("="*60)
     logger.info(f"Total: {len(embeddings)} embeddings")
-    logger.info(f"Dimensão: {embeddings.shape[1]}")
-    logger.info(f"\nArquivos salvos:")
+    logger.info(f"Dimensions: {embeddings.shape[1]}")
+    logger.info("\nFiles saved:")
     logger.info(f"  - {uris['embeddings_uri']}")
     logger.info(f"  - {uris['metadata_uri']}")
     logger.info(f"  - {vector_search_uri}")
-    logger.info(f"\nPróximo passo: Execute scripts/03_setup_vector_search.py")
+    logger.info("\nNext step: Run scripts/03_setup_vector_search.py")
     logger.info("="*60)
 
 if __name__ == "__main__":

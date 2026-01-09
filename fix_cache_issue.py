@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-🔧 Script para diagnosticar e resolver problemas de cache do Python
+🔧 Script to diagnose and fix Python cache issues
 
-Este script:
-1. Verifica qual arquivo está sendo importado
-2. Remove arquivos de cache (.pyc, __pycache__)
-3. Força reimportação limpa do módulo
-4. Testa se o novo código está funcionando
+This script:
+1. Checks which file is being imported
+2. Removes cache files (.pyc, __pycache__)
+3. Forces a clean module re-import
+4. Tests if the new code is working
 """
 
 import os
@@ -20,110 +20,110 @@ def print_section(title: str):
     print("="*70 + "\n")
 
 def remove_cache_files(project_root: Path):
-    """Remove todos os arquivos de cache Python"""
-    print("🧹 Removendo arquivos de cache...")
+    """Remove all Python cache files."""
+    print("🧹 Removing cache files...")
 
     cache_removed = 0
 
-    # Remover __pycache__ directories
+    # Remove __pycache__ directories
     for pycache in project_root.rglob("__pycache__"):
         if pycache.is_dir():
-            print(f"   Removendo: {pycache}")
+            print(f"   Removing: {pycache}")
             shutil.rmtree(pycache)
             cache_removed += 1
 
-    # Remover .pyc files
+    # Remove .pyc files
     for pyc_file in project_root.rglob("*.pyc"):
         if pyc_file.is_file():
-            print(f"   Removendo: {pyc_file}")
+            print(f"   Removing: {pyc_file}")
             pyc_file.unlink()
             cache_removed += 1
 
     if cache_removed == 0:
-        print("   ✅ Nenhum arquivo de cache encontrado")
+        print("   ✅ No cache files found")
     else:
-        print(f"   ✅ {cache_removed} arquivo(s) de cache removidos")
+        print(f"   ✅ {cache_removed} cache file(s) removed")
 
 def verify_code_version(project_root: Path):
-    """Verifica se o código atual tem a implementação correta"""
-    print("🔍 Verificando versão do código...")
+    """Check if the current code has the correct implementation."""
+    print("🔍 Checking code version...")
 
     faq_file = project_root / "simple_faq_rag.py"
 
     with open(faq_file, 'r', encoding='utf-8') as f:
         content = f.read()
 
-    # Verificar se tem o código NOVO (iloc)
+    # Check for new code (iloc)
     has_new_code = "df.iloc[:, 0]" in content and "df.iloc[:, 1]" in content
 
-    # Verificar se NÃO tem código ANTIGO (column_mapping)
-    has_old_code = "column_mapping = {}" in content or "'Questions': 'pergunta'" in content
+    # Ensure the old mapping code is not present
+    has_old_code = "column_mapping = {}" in content or "'Questions': 'question'" in content
 
-    print(f"   Código novo (iloc): {'✅ Presente' if has_new_code else '❌ AUSENTE'}")
-    print(f"   Código antigo (mapping): {'❌ PRESENTE' if has_old_code else '✅ Ausente'}")
+    print(f"   New code (iloc): {'✅ Present' if has_new_code else '❌ MISSING'}")
+    print(f"   Old code (mapping): {'❌ PRESENT' if has_old_code else '✅ Absent'}")
 
     if has_new_code and not has_old_code:
-        print("\n   ✅ Arquivo tem a versão CORRETA do código!")
+        print("\n   ✅ File has the CORRECT version of the code!")
         return True
     else:
-        print("\n   ❌ PROBLEMA: Arquivo não tem a versão esperada!")
+        print("\n   ❌ PROBLEM: File does not have the expected version!")
         return False
 
 def clear_module_from_memory():
-    """Remove módulo da memória do Python"""
-    print("🧠 Limpando módulo da memória...")
+    """Remove module from Python memory."""
+    print("🧠 Clearing module from memory...")
 
     if 'simple_faq_rag' in sys.modules:
         del sys.modules['simple_faq_rag']
-        print("   ✅ Módulo removido da memória")
+        print("   ✅ Module removed from memory")
     else:
-        print("   ✅ Módulo não estava na memória")
+        print("   ✅ Module was not in memory")
 
 def test_import(project_root: Path):
-    """Testa importação do módulo"""
-    print("📦 Testando importação...")
+    """Test importing the module."""
+    print("📦 Testing import...")
 
-    # Garantir que o diretório do projeto está no path
+    # Ensure the project root is on the path
     if str(project_root) not in sys.path:
         sys.path.insert(0, str(project_root))
 
     try:
-        # Importar módulo
+        # Import module
         from simple_faq_rag import SimpleFAQSystem
 
-        # Verificar qual arquivo foi importado
+        # Check which file was imported
         import simple_faq_rag
         imported_file = simple_faq_rag.__file__
-        print(f"   ✅ Módulo importado de: {imported_file}")
+        print(f"   ✅ Module imported from: {imported_file}")
 
-        # Verificar se o arquivo importado é o correto
+        # Validate import path
         expected_file = str(project_root / "simple_faq_rag.py")
         if os.path.abspath(imported_file) == os.path.abspath(expected_file):
-            print("   ✅ Arquivo CORRETO sendo importado!")
+            print("   ✅ Correct file is being imported!")
             return True
         else:
-            print(f"   ❌ PROBLEMA: Importando arquivo ERRADO!")
-            print(f"      Esperado: {expected_file}")
-            print(f"      Atual: {imported_file}")
+            print("   ❌ PROBLEM: Importing the wrong file!")
+            print(f"      Expected: {expected_file}")
+            print(f"      Actual: {imported_file}")
             return False
 
     except Exception as e:
-        print(f"   ❌ Erro ao importar: {e}")
+        print(f"   ❌ Error importing: {e}")
         return False
 
 def test_load_csv(project_root: Path):
-    """Testa se load_csv está usando o código novo"""
-    print("🧪 Testando função load_csv...")
+    """Test if load_csv is using the new code."""
+    print("🧪 Testing load_csv function...")
 
     try:
-        # Verificar se existe CSV de exemplo
+        # Check if example CSV exists
         csv_path = project_root / "data" / "faq_example.csv"
         if not csv_path.exists():
-            print(f"   ⚠️  CSV de teste não encontrado: {csv_path}")
-            print("   Pulando teste funcional...")
+            print(f"   ⚠️  Test CSV not found: {csv_path}")
+            print("   Skipping functional test...")
             return None
 
-        # Importar e testar
+        # Import and test
         from dotenv import load_dotenv
         load_dotenv()
 
@@ -131,90 +131,90 @@ def test_load_csv(project_root: Path):
 
         project_id = os.getenv('PROJECT_ID')
         if not project_id:
-            print("   ⚠️  PROJECT_ID não configurado no .env")
-            print("   Pulando teste funcional...")
+            print("   ⚠️  PROJECT_ID not configured in .env")
+            print("   Skipping functional test...")
             return None
 
-        # Criar sistema e testar
-        print("   Inicializando sistema...")
+        # Create system and test
+        print("   Initializing system...")
         faq = SimpleFAQSystem(project_id=project_id)
 
-        print(f"   Carregando CSV: {csv_path}")
+        print(f"   Loading CSV: {csv_path}")
         faq.load_csv(str(csv_path))
 
-        print(f"   ✅ CSV carregado com sucesso!")
-        print(f"   ✅ {len(faq.df)} perguntas processadas")
+        print("   ✅ CSV loaded successfully!")
+        print(f"   ✅ {len(faq.df)} questions processed")
 
-        # Verificar se as colunas são 'pergunta' e 'resposta'
-        if 'pergunta' in faq.df.columns and 'resposta' in faq.df.columns:
-            print("   ✅ Colunas padronizadas corretamente!")
+        # Validate standardized columns
+        if 'question' in faq.df.columns and 'answer' in faq.df.columns:
+            print("   ✅ Columns standardized correctly!")
             return True
         else:
-            print(f"   ❌ PROBLEMA: Colunas inesperadas: {list(faq.df.columns)}")
+            print(f"   ❌ PROBLEM: Unexpected columns: {list(faq.df.columns)}")
             return False
 
     except Exception as e:
-        print(f"   ❌ Erro no teste: {e}")
+        print(f"   ❌ Error in test: {e}")
         import traceback
         traceback.print_exc()
         return False
 
 def main():
-    """Função principal"""
+    """Main entry point."""
 
-    print_section("🔧 DIAGNÓSTICO E CORREÇÃO DE CACHE DO PYTHON")
+    print_section("🔧 PYTHON CACHE DIAGNOSIS AND FIX")
 
-    # Determinar diretório do projeto
+    # Determine project directory
     project_root = Path(__file__).parent
-    print(f"📁 Diretório do projeto: {project_root}\n")
+    print(f"📁 Project directory: {project_root}\n")
 
-    # ETAPA 1: Remover cache
-    print_section("ETAPA 1: Limpando Cache")
+    # STEP 1: Remove cache
+    print_section("STEP 1: Clearing Cache")
     remove_cache_files(project_root)
 
-    # ETAPA 2: Verificar código no arquivo
-    print_section("ETAPA 2: Verificando Código no Arquivo")
+    # STEP 2: Verify code in file
+    print_section("STEP 2: Verifying Code in File")
     code_ok = verify_code_version(project_root)
 
     if not code_ok:
-        print("\n⚠️  ATENÇÃO: O arquivo não tem a versão esperada do código!")
-        print("   Execute: git pull origin claude/simple-faq-rag-34uUC")
+        print("\n⚠️  WARNING: The file does not have the expected code version!")
+        print("   Run: git pull origin claude/simple-faq-rag-34uUC")
         return
 
-    # ETAPA 3: Limpar memória
-    print_section("ETAPA 3: Limpando Memória do Python")
+    # STEP 3: Clear memory
+    print_section("STEP 3: Clearing Python Memory")
     clear_module_from_memory()
 
-    # ETAPA 4: Testar importação
-    print_section("ETAPA 4: Testando Importação")
+    # STEP 4: Test import
+    print_section("STEP 4: Testing Import")
     import_ok = test_import(project_root)
 
     if not import_ok:
-        print("\n⚠️  PROBLEMA: Módulo não está sendo importado corretamente!")
+        print("\n⚠️  PROBLEM: Module is not being imported correctly!")
         return
 
-    # ETAPA 5: Teste funcional
-    print_section("ETAPA 5: Teste Funcional")
+    # STEP 5: Functional test
+    print_section("STEP 5: Functional Test")
     test_ok = test_load_csv(project_root)
 
-    # RESUMO
-    print_section("📊 RESUMO")
+    # SUMMARY
+    print_section("📊 SUMMARY")
 
     if code_ok and import_ok and test_ok:
-        print("✅ TUDO OK! O sistema está funcionando corretamente!")
-        print("\n🎯 Próximos passos:")
+        print("✅ EVERYTHING OK! The system is working correctly!")
+        print("\n🎯 Next steps:")
         print("   python simple_scripts/03_use_bucket.py")
     elif test_ok is None:
-        print("⚠️  Código e importação OK, mas teste funcional foi pulado")
-        print("   (falta .env ou CSV de exemplo)")
-        print("\n🎯 Tente executar:")
+        print("⚠️  Code and import OK, but functional test was skipped")
+        print("   (missing .env or example CSV)")
+        print("\n🎯 Try running:")
         print("   python simple_scripts/03_use_bucket.py")
     else:
-        print("❌ Ainda há problemas. Veja os detalhes acima.")
-        print("\n💡 Sugestões:")
-        print("   1. Reinicie completamente o terminal")
-        print("   2. Execute: git pull")
-        print("   3. Execute este script novamente")
+        print("❌ There are still problems. See details above.")
+        print("\n💡 Suggestions:")
+        print("   1. Restart the terminal completely")
+        print("   2. Run: git pull")
+        print("   3. Run this script again")
 
 if __name__ == "__main__":
     main()

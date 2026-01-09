@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-Script 01: Download e processamento de dados
-Faz download do dataset Flipkart e processa para uso no RAG.
+Script 01: Download and process data
+Downloads the Flipkart dataset and prepares it for RAG.
 """
 
 import sys
 import os
 from pathlib import Path
 
-# Adicionar src ao path
+# Add src to path
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
 from dotenv import load_dotenv
@@ -16,54 +16,54 @@ from loguru import logger
 from data_loader import DataLoader
 
 def main():
-    # Carregar variáveis de ambiente
+    # Load environment variables
     load_dotenv()
 
     project_id = os.getenv("PROJECT_ID")
     bucket_name = os.getenv("BUCKET_NAME")
 
     if not project_id or not bucket_name:
-        logger.error("PROJECT_ID e BUCKET_NAME devem estar definidos no .env")
+        logger.error("PROJECT_ID and BUCKET_NAME must be defined in .env")
         sys.exit(1)
 
     logger.info("="*60)
-    logger.info("SCRIPT 01: Download e Processamento de Dados")
+    logger.info("SCRIPT 01: Download and Process Data")
     logger.info("="*60)
 
-    # Inicializar loader
+    # Initialize loader
     loader = DataLoader(
         project_id=project_id,
         bucket_name=bucket_name
     )
 
-    # Opção 1: Tentar baixar do Kaggle (requer credenciais)
+    # Option 1: Download from Kaggle (requires credentials)
     try:
-        logger.info("\nTentando baixar dataset do Kaggle...")
+        logger.info("\nTrying to download dataset from Kaggle...")
         file_path = loader.download_kaggle_dataset()
         df_raw = loader.load_csv(file_path)
 
     except Exception as e:
-        logger.warning(f"Não foi possível baixar do Kaggle: {e}")
-        logger.info("Usando dataset de exemplo...")
+        logger.warning(f"Could not download from Kaggle: {e}")
+        logger.info("Using sample dataset...")
 
-        # Opção 2: Usar dados de exemplo
+        # Option 2: Use sample data
         df_raw = loader.get_sample_data(n=1000)
 
-    # Processar dados
-    logger.info("\nProcessando dados...")
+    # Process data
+    logger.info("\nProcessing data...")
     df_processed = loader.process_products(df_raw)
 
-    # Upload para GCS
-    logger.info("\nFazendo upload para Cloud Storage...")
+    # Upload to GCS
+    logger.info("\nUploading to Cloud Storage...")
     gcs_uri = loader.upload_to_gcs(df_processed)
 
-    # Estatísticas finais
+    # Final stats
     logger.info("\n" + "="*60)
-    logger.info("✅ DOWNLOAD E PROCESSAMENTO CONCLUÍDOS!")
+    logger.info("✅ DOWNLOAD AND PROCESSING COMPLETE!")
     logger.info("="*60)
-    logger.info(f"Total de produtos: {len(df_processed)}")
-    logger.info(f"Dados salvos em: {gcs_uri}")
-    logger.info(f"\nPróximo passo: Execute scripts/02_create_embeddings.py")
+    logger.info(f"Total products: {len(df_processed)}")
+    logger.info(f"Data saved to: {gcs_uri}")
+    logger.info("\nNext step: Run scripts/02_create_embeddings.py")
     logger.info("="*60)
 
 if __name__ == "__main__":
