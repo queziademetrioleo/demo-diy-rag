@@ -24,7 +24,7 @@ from loguru import logger
 from sklearn.metrics.pairwise import cosine_similarity
 import json
 import re
-from vertexai.generative_models import GenerativeModel, GenerationConfig
+from vertexai.generative_models import GenerativeModel, GenerationConfig, HarmCategory, HarmBlockThreshold
 
 
 class SimpleFAQSystem:
@@ -423,10 +423,10 @@ RESPOSTA:"""
                 prompt,
                 generation_config=self.generation_config,
                 safety_settings={
-                    "HARASSMENT": "BLOCK_MEDIUM_AND_ABOVE",
-                    "HATE_SPEECH": "BLOCK_MEDIUM_AND_ABOVE",
-                    "SEXUALLY_EXPLICIT": "BLOCK_MEDIUM_AND_ABOVE",
-                    "DANGEROUS_CONTENT": "BLOCK_MEDIUM_AND_ABOVE",
+                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
                 }
             )
 
