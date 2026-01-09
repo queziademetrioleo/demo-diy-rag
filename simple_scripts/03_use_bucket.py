@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-🪣 Script para usar o sistema FAQ com Google Cloud Storage
+🪣 Script to use the FAQ system with Google Cloud Storage
 
-Este script:
-1. Baixa o CSV do Cloud Storage
-2. Cria a base de conhecimento (embeddings)
-3. Faz upload da base para o bucket
-4. Testa o sistema com perguntas de exemplo
+This script:
+1. Downloads the CSV from Cloud Storage
+2. Creates the knowledge base (embeddings)
+3. Uploads the knowledge base to the bucket
+4. Tests the system with example questions
 """
 
 import os
@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 from google.cloud import storage
 import tempfile
 
-# Adicionar path do projeto
+# Add project path
 project_root = Path(__file__).parent.parent
 sys.path.append(str(project_root))
 
@@ -24,7 +24,7 @@ from simple_faq_rag import SimpleFAQSystem
 
 
 def print_section(title: str):
-    """Imprime seção formatada"""
+    """Print a formatted section."""
     print("\n" + "="*70)
     print(title)
     print("="*70 + "\n")
@@ -32,26 +32,26 @@ def print_section(title: str):
 
 def download_csv_from_bucket(bucket_name: str, csv_path: str) -> str:
     """
-    Baixa CSV do Cloud Storage para arquivo temporário.
+    Download CSV from Cloud Storage to a temp file.
 
     Args:
-        bucket_name: Nome do bucket
-        csv_path: Path do CSV no bucket (ex: raw_data/faq.csv)
+        bucket_name: Bucket name
+        csv_path: CSV path in bucket (e.g., raw_data/faq.csv)
 
     Returns:
-        Path do arquivo local temporário
+        Local temp file path
     """
-    print("📥 Baixando CSV do bucket...")
+    print("📥 Downloading CSV from the bucket...")
 
     try:
-        # Inicializar cliente
+        # Initialize client
         storage_client = storage.Client()
         bucket = storage_client.bucket(bucket_name)
 
-        # Criar blob
+        # Create blob
         blob = bucket.blob(csv_path)
 
-        # Criar arquivo temporário
+        # Create temporary file
         temp_file = tempfile.NamedTemporaryFile(
             mode='wb',
             suffix='.csv',
@@ -61,20 +61,20 @@ def download_csv_from_bucket(bucket_name: str, csv_path: str) -> str:
         # Download
         blob.download_to_filename(temp_file.name)
 
-        # Pegar nome do arquivo original
+        # Get original file name
         filename = os.path.basename(csv_path)
 
-        print(f"✅ CSV baixado: {filename}")
+        print(f"✅ CSV downloaded: {filename}")
         print(f"   Local: {temp_file.name}")
 
         return temp_file.name
 
     except Exception as e:
-        print(f"\n❌ Erro ao baixar CSV: {e}")
-        print("\n💡 Dicas:")
-        print("   - Verifique se o arquivo existe no bucket")
-        print(f"   - Path esperado: gs://{bucket_name}/{csv_path}")
-        print("   - Execute: gsutil ls gs://{bucket_name}/raw_data/")
+        print(f"\n❌ Error downloading CSV: {e}")
+        print("\n💡 Tips:")
+        print("   - Make sure the file exists in the bucket")
+        print(f"   - Expected path: gs://{bucket_name}/{csv_path}")
+        print(f"   - Run: gsutil ls gs://{bucket_name}/raw_data/")
         sys.exit(1)
 
 
@@ -84,14 +84,14 @@ def upload_knowledge_base_to_bucket(
     metadata_path: str
 ):
     """
-    Faz upload da base de conhecimento para o bucket.
+    Upload the knowledge base to the bucket.
 
     Args:
-        bucket_name: Nome do bucket
-        embeddings_path: Path local dos embeddings (.npy)
-        metadata_path: Path local dos metadados (.csv)
+        bucket_name: Bucket name
+        embeddings_path: Local path to embeddings (.npy)
+        metadata_path: Local path to metadata (.csv)
     """
-    print("\n📤 Fazendo upload da base de conhecimento...")
+    print("\n📤 Uploading knowledge base...")
 
     try:
         storage_client = storage.Client()
@@ -100,26 +100,26 @@ def upload_knowledge_base_to_bucket(
         # Upload embeddings
         embeddings_blob = bucket.blob("embeddings/faq_embeddings.npy")
         embeddings_blob.upload_from_filename(embeddings_path)
-        print("   ✅ Embeddings enviados")
+        print("   ✅ Embeddings uploaded")
 
         # Upload metadata
         metadata_blob = bucket.blob("knowledge_base/faq_metadata.csv")
         metadata_blob.upload_from_filename(metadata_path)
-        print("   ✅ Metadados enviados")
+        print("   ✅ Metadata uploaded")
 
-        print("\n✅ Base de conhecimento salva no bucket!")
+        print("\n✅ Knowledge base saved in the bucket!")
         print(f"   - gs://{bucket_name}/embeddings/faq_embeddings.npy")
         print(f"   - gs://{bucket_name}/knowledge_base/faq_metadata.csv")
 
     except Exception as e:
-        print(f"\n❌ Erro ao fazer upload: {e}")
+        print(f"\n❌ Error uploading: {e}")
         sys.exit(1)
 
 
 def main():
-    """Função principal"""
+    """Main entry point."""
 
-    # Carregar variáveis de ambiente
+    # Load environment variables
     load_dotenv()
 
     project_id = os.getenv("PROJECT_ID")
@@ -127,27 +127,27 @@ def main():
     bucket_name = os.getenv("BUCKET_NAME")
     raw_data_path = os.getenv("RAW_DATA_PATH")
 
-    # Validar configurações
+    # Validate configuration
     if not all([project_id, bucket_name, raw_data_path]):
-        print("❌ Erro: Arquivo .env não configurado!")
-        print("\n💡 Crie o arquivo .env com:")
-        print("   PROJECT_ID=seu-projeto")
-        print("   BUCKET_NAME=seu-bucket")
-        print("   RAW_DATA_PATH=raw_data/seu_arquivo.csv")
+        print("❌ Error: .env file is not configured!")
+        print("\n💡 Create .env with:")
+        print("   PROJECT_ID=your-project")
+        print("   BUCKET_NAME=your-bucket")
+        print("   RAW_DATA_PATH=raw_data/your_file.csv")
         sys.exit(1)
 
-    print_section("🪣 SISTEMA FAQ COM GOOGLE CLOUD STORAGE")
+    print_section("🪣 FAQ SYSTEM WITH GOOGLE CLOUD STORAGE")
 
-    print(f"✅ Projeto: {project_id}")
+    print(f"✅ Project: {project_id}")
     print(f"✅ Bucket: gs://{bucket_name}")
 
-    # ETAPA 1: Download do CSV
-    print_section("ETAPA 1: Baixando dados do Cloud Storage")
+    # STEP 1: Download CSV
+    print_section("STEP 1: Downloading data from Cloud Storage")
 
     csv_file = download_csv_from_bucket(bucket_name, raw_data_path)
 
-    # ETAPA 2: Inicializar sistema
-    print_section("ETAPA 2: Inicializando Sistema FAQ")
+    # STEP 2: Initialize system
+    print_section("STEP 2: Initializing FAQ System")
 
     try:
         faq = SimpleFAQSystem(
@@ -155,60 +155,60 @@ def main():
             location=location
         )
     except Exception as e:
-        print(f"❌ Erro ao inicializar: {e}")
-        print("\n💡 Verifique se Vertex AI API está habilitada:")
+        print(f"❌ Error initializing: {e}")
+        print("\n💡 Make sure Vertex AI API is enabled:")
         print(f"   gcloud services enable aiplatform.googleapis.com --project={project_id}")
         sys.exit(1)
 
-    # ETAPA 3: Carregar CSV
-    print_section("ETAPA 3: Carregando Perguntas e Respostas")
+    # STEP 3: Load CSV
+    print_section("STEP 3: Loading Questions and Answers")
 
     try:
         faq.load_csv(csv_file)
-        print(f"\n📊 Total de perguntas: {len(faq.df)}")
-        print("\n📝 Primeiras 5 perguntas:")
+        print(f"\n📊 Total questions: {len(faq.df)}")
+        print("\n📝 First 5 questions:")
         for i, row in faq.df.head(5).iterrows():
-            print(f"   {i+1}. {row['pergunta'][:60]}...")
+            print(f"   {i+1}. {row['question'][:60]}...")
     except Exception as e:
-        print(f"❌ Erro ao carregar CSV: {e}")
-        print("\n💡 Dicas:")
-        print("   - CSV precisa ter pelo menos 2 colunas")
-        print("   - Coluna 1: Perguntas (qualquer nome)")
-        print("   - Coluna 2: Respostas (qualquer nome)")
+        print(f"❌ Error loading CSV: {e}")
+        print("\n💡 Tips:")
+        print("   - CSV must have at least 2 columns")
+        print("   - Column 1: Questions (any name)")
+        print("   - Column 2: Answers (any name)")
         sys.exit(1)
 
-    # ETAPA 4: Criar base de conhecimento
-    print_section("ETAPA 4: Criando Base de Conhecimento (Embeddings)")
+    # STEP 4: Create knowledge base
+    print_section("STEP 4: Creating Knowledge Base (Embeddings)")
 
-    print("⏳ Isso pode levar alguns minutos dependendo do tamanho do CSV...")
+    print("⏳ This may take a few minutes depending on CSV size...")
 
     try:
         faq.create_knowledge_base()
     except Exception as e:
-        print(f"❌ Erro ao criar base: {e}")
+        print(f"❌ Error creating knowledge base: {e}")
         sys.exit(1)
 
-    # ETAPA 5: Salvar base localmente
-    print_section("ETAPA 5: Salvando Base de Conhecimento")
+    # STEP 5: Save base locally
+    print_section("STEP 5: Saving Knowledge Base")
 
     import numpy as np
 
-    # Criar diretório temporário
+    # Create temporary directory
     temp_dir = Path(tempfile.gettempdir()) / "faq_knowledge_base"
     temp_dir.mkdir(exist_ok=True)
 
-    # Salvar embeddings
+    # Save embeddings
     embeddings_file = temp_dir / "faq_embeddings.npy"
     np.save(embeddings_file, faq.embeddings)
-    print(f"✅ Embeddings salvos: {embeddings_file}")
+    print(f"✅ Embeddings saved: {embeddings_file}")
 
-    # Salvar metadata
+    # Save metadata
     metadata_file = temp_dir / "faq_metadata.csv"
     faq.df.to_csv(metadata_file, index=False)
-    print(f"✅ Metadados salvos: {metadata_file}")
+    print(f"✅ Metadata saved: {metadata_file}")
 
-    # ETAPA 6: Upload para bucket
-    print_section("ETAPA 6: Enviando para Cloud Storage")
+    # STEP 6: Upload to bucket
+    print_section("STEP 6: Uploading to Cloud Storage")
 
     upload_knowledge_base_to_bucket(
         bucket_name,
@@ -216,54 +216,54 @@ def main():
         str(metadata_file)
     )
 
-    # ETAPA 7: Testar sistema
-    print_section("ETAPA 7: Testando Sistema")
+    # STEP 7: Test system
+    print_section("STEP 7: Testing System")
 
-    # Pegar primeiras 3 perguntas para testar
-    test_queries = faq.df['pergunta'].head(3).tolist()
+    # Use first 3 questions for testing
+    test_queries = faq.df['question'].head(3).tolist()
 
-    print("🧪 Fazendo 3 perguntas de teste:\n")
+    print("🧪 Running 3 test questions:\n")
 
     for i, query in enumerate(test_queries, 1):
         print(f"\n{'─'*70}")
-        print(f"Teste {i}: {query}")
+        print(f"Test {i}: {query}")
         print('─'*70)
 
         try:
             result = faq.ask(query)
 
             if result['found']:
-                print(f"✅ Resposta encontrada (score: {result['score']:.2f}):")
-                print(f"\n{result['resposta']}\n")
+                print(f"✅ Answer found (score: {result['score']:.2f}):")
+                print(f"\n{result['answer']}\n")
             else:
-                print("❌ Nenhuma resposta encontrada")
+                print("❌ No answer found")
 
         except Exception as e:
-            print(f"❌ Erro: {e}")
+            print(f"❌ Error: {e}")
 
-    # FINALIZAÇÃO
-    print_section("✅ PROCESSO CONCLUÍDO COM SUCESSO!")
+    # FINAL
+    print_section("✅ PROCESS COMPLETED SUCCESSFULLY!")
 
-    print("📊 Resumo:")
-    print(f"   • {len(faq.df)} perguntas processadas")
-    print(f"   • Base de conhecimento criada")
-    print(f"   • Arquivos salvos no bucket: gs://{bucket_name}/")
+    print("📊 Summary:")
+    print(f"   • {len(faq.df)} questions processed")
+    print("   • Knowledge base created")
+    print(f"   • Files saved in bucket: gs://{bucket_name}/")
 
-    print("\n🎯 Próximos passos:")
-    print("   1. Testar mais perguntas:")
+    print("\n🎯 Next steps:")
+    print("   1. Test more questions:")
     print("      python simple_scripts/01_test_system.py")
-    print("\n   2. Abrir interface web:")
+    print("\n   2. Open web interface:")
     print("      python simple_gradio_app.py")
 
-    print("\n💡 A base de conhecimento está salva no bucket!")
-    print("   Você NÃO precisa reprocessar sempre.")
-    print("   Para usar, basta carregar os arquivos do bucket.")
+    print("\n💡 The knowledge base is saved in the bucket!")
+    print("   You do NOT need to reprocess every time.")
+    print("   To use it, just load the files from the bucket.")
 
-    # Limpar arquivo temporário
+    # Clean up temp file
     os.unlink(csv_file)
 
     print("\n" + "="*70)
-    print("🎉 TUDO PRONTO!")
+    print("🎉 ALL DONE!")
     print("="*70 + "\n")
 
 

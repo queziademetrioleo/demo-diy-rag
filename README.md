@@ -1,141 +1,141 @@
-# 💬 Sistema FAQ com RAG Simples
+# 💬 Simple FAQ System with RAG
 
-**Demo DIY RAG para Certificação Google Cloud Gen AI Specialization**
+**DIY RAG demo for the Google Cloud Gen AI Services Specialization**
 
-Sistema FAQ inteligente usando **RAG (Retrieval Augmented Generation)** com:
+An intelligent FAQ system using **RAG (Retrieval Augmented Generation)** with:
 - 🔍 **Embeddings** (Vertex AI text-embedding-004)
-- 🤖 **LLM** (Gemini 1.5 Flash)
-- ☁️ **Cloud Storage** (dados organizados em buckets)
-- 🎨 **Interface Web** (Gradio)
+- 🤖 **LLM** (Gemini 2.5 Flash)
+- ☁️ **Cloud Storage** (organized data buckets)
+- 🎨 **Web Interface** (Gradio)
 
-## 🎯 O Que Este Sistema Faz
+## 🎯 What This System Does
 
-Responde perguntas de usuários usando uma base de conhecimento FAQ:
+Answers user questions using an FAQ knowledge base:
 
-1. **Retrieval (Busca):** Encontra FAQs relevantes usando embeddings e similaridade de cosseno
-2. **Generation (Geração):** Gemini reformula a resposta de forma natural
-3. **Output Filtering:** Remove informações sensíveis (emails, telefones, CPFs)
+1. **Retrieval:** Finds relevant FAQs using embeddings and cosine similarity
+2. **Generation:** Gemini rewrites the answer naturally
+3. **Output Filtering:** Removes sensitive information (emails, phone numbers, IDs)
 
-**Exemplo:**
+**Example:**
 ```
-Usuário: "Como faço para resetar minha senha?"
-Sistema:
-  1. Busca FAQs similares (embeddings)
-  2. Gemini gera resposta baseada nos FAQs encontrados
-  3. Filtra dados sensíveis antes de exibir
+User: "How do I reset my password?"
+System:
+  1. Finds similar FAQs (embeddings)
+  2. Gemini generates an answer based on the retrieved FAQs
+  3. Filters sensitive data before displaying
 ```
 
-## 📁 Arquivos Principais
+## 📁 Main Files
 
 ```
 demo-diy-rag/
-├── simple_faq_rag.py          # Sistema RAG completo (embeddings + LLM)
-├── simple_gradio_app.py       # Interface Gradio (auto-load do bucket)
-├── requirements.txt           # Dependências Python
-├── .env                       # Configurações (não commitar!)
-├── .env.example              # Exemplo de configuração
+├── simple_faq_rag.py          # Full RAG system (embeddings + LLM)
+├── simple_gradio_app.py       # Gradio UI (auto-loads from bucket)
+├── requirements.txt           # Python dependencies
+├── .env                       # Settings (do not commit!)
+├── .env.example               # Configuration example
 │
 ├── simple_scripts/
-│   ├── 01_test_system.py     # Testar sistema localmente
-│   ├── 02_save_knowledge_base.py  # Salvar embeddings
-│   └── 03_use_bucket.py      # Processar CSV e enviar ao bucket
+│   ├── 01_test_system.py      # Test the system locally
+│   ├── 02_save_knowledge_base.py  # Save embeddings
+│   └── 03_use_bucket.py       # Process CSV and upload to bucket
 │
 └── data/
-    └── faq_example.csv       # CSV de exemplo (Questions/Answers)
+    └── faq_example.csv        # Example CSV (Questions/Answers)
 ```
 
-## 🚀 Quick Start (5 Minutos)
+## 🚀 Quick Start (5 Minutes)
 
-### Pré-requisitos
-- Projeto Google Cloud com billing habilitado
-- Cloud Shell (já tem Python 3.12, gcloud, tudo pronto!)
+### Prerequisites
+- Google Cloud project with billing enabled
+- Cloud Shell (already includes Python 3.12, gcloud, etc.)
 
-### Passo 1: Clonar e Configurar
+### Step 1: Clone and Configure
 
 ```bash
-# No Cloud Shell
-git clone https://github.com/seu-usuario/demo-diy-rag.git
+# In Cloud Shell
+git clone https://github.com/your-user/demo-diy-rag.git
 cd demo-diy-rag
 
-# Instalar dependências
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### Passo 2: Configurar .env
+### Step 2: Configure .env
 
-**IMPORTANTE:** Sem comentários decorativos! Apenas `KEY=value`
+**IMPORTANT:** No decorative comments! Only `KEY=value`
 
 ```bash
-# Copiar exemplo
+# Copy example
 cp .env.example .env
 
-# Editar (use nano ou editor do Cloud Shell)
+# Edit (use nano or Cloud Shell editor)
 nano .env
 ```
 
-Conteúdo do `.env`:
+`.env` content:
 ```bash
-PROJECT_ID=seu-projeto-id
+PROJECT_ID=your-project-id
 LOCATION=us-central1
-BUCKET_NAME=seu-projeto-id-data
+BUCKET_NAME=your-project-id-data
 RAW_DATA_PATH=raw_data/faq_demo.csv
 ```
 
-### Passo 3: Criar Bucket e Upload CSV
+### Step 3: Create Bucket and Upload CSV
 
 ```bash
-# Habilitar APIs
+# Enable APIs
 gcloud services enable aiplatform.googleapis.com storage-api.googleapis.com
 
-# Criar bucket
-gsutil mb gs://seu-projeto-id-data
+# Create bucket
+gsutil mb gs://your-project-id-data
 
-# Upload do CSV (SEM ESPAÇOS NO NOME!)
-# Use Cloud Shell Editor (3 pontos > Upload) para enviar seu CSV
-# Depois:
-gsutil cp ~/faq_demo.csv gs://seu-projeto-id-data/raw_data/
+# Upload the CSV (NO SPACES IN THE NAME!)
+# Use Cloud Shell Editor (three dots > Upload) to upload your CSV
+# Then:
+gsutil cp ~/faq_demo.csv gs://your-project-id-data/raw_data/
 ```
 
-**⚠️ ERRO COMUM:** Nomes de arquivo com espaços quebram gsutil!
-- ❌ ERRADO: `FAC - DEMO1 (DIY RAG) - Página1.csv`
-- ✅ CORRETO: `faq_demo.csv`
+**⚠️ COMMON ERROR:** File names with spaces break gsutil!
+- ❌ WRONG: `FAC - DEMO1 (DIY RAG) - Page1.csv`
+- ✅ CORRECT: `faq_demo.csv`
 
-### Passo 4: Processar FAQ e Criar Embeddings
+### Step 4: Process the FAQ and Create Embeddings
 
 ```bash
-# Baixa CSV, cria embeddings, sobe para bucket
+# Downloads CSV, creates embeddings, uploads to the bucket
 python simple_scripts/03_use_bucket.py
 ```
 
-Isso vai:
-- ✅ Baixar CSV do bucket
-- ✅ Criar embeddings (text-embedding-004)
-- ✅ Salvar no bucket: `embeddings/faq_embeddings.npy` e `knowledge_base/faq_metadata.csv`
+This will:
+- ✅ Download CSV from the bucket
+- ✅ Create embeddings (text-embedding-004)
+- ✅ Save to the bucket: `embeddings/faq_embeddings.npy` and `knowledge_base/faq_metadata.csv`
 
-⏰ **Tempo:** ~5-10 minutos (depende do tamanho do CSV)
+⏰ **Time:** ~5-10 minutes (depends on CSV size)
 
-### Passo 5: Rodar Interface Web
+### Step 5: Run the Web Interface
 
 ```bash
-# Gradio no Cloud Shell
+# Gradio in Cloud Shell
 python simple_gradio_app.py
 ```
 
-O sistema carrega automaticamente do bucket (~10 segundos).
+The system automatically loads from the bucket (~10 seconds).
 
-Clique em "Web Preview" (porta 8080) no Cloud Shell para abrir a interface!
+Click **"Web Preview"** (port 8080) in Cloud Shell to open the interface.
 
-**Interface pronta:** Chat moderno com histórico, exemplos e metadados das respostas.
+**Ready UI:** Modern chat with history, examples, and answer metadata.
 
-## 📊 Formato do CSV
+## 📊 CSV Format
 
-**Regra simples:** O sistema usa as **2 primeiras colunas** do CSV:
-- **Coluna 1 (índice 0):** Perguntas
-- **Coluna 2 (índice 1):** Respostas
+**Simple rule:** The system uses the **first 2 columns** of the CSV:
+- **Column 1 (index 0):** Questions
+- **Column 2 (index 1):** Answers
 
-**Os nomes das colunas podem ser QUALQUER COISA!**
+**Column names can be ANYTHING!**
 
-**Exemplos que funcionam:**
+**Examples that work:**
 
 ```csv
 Questions,Answers
@@ -143,8 +143,8 @@ Questions,Answers
 ```
 
 ```csv
-pergunta,resposta
-"Como resetar senha?","Vá em Configurações > Conta > Resetar Senha..."
+question,answer
+"How to reset password?","Go to Settings > Account > Reset Password..."
 ```
 
 ```csv
@@ -157,31 +157,31 @@ question_text,answer_text
 "Help?","Sure..."
 ```
 
-Todos funcionam! O sistema apenas lê: 1ª coluna = pergunta, 2ª = resposta.
+All work! The system just reads: 1st column = question, 2nd = answer.
 
-## 🏗️ Arquitetura
+## 🏗️ Architecture
 
 ```
 ┌─────────────────┐
-│   CSV FAQ       │  ← Perguntas e Respostas
+│   CSV FAQ       │  ← Questions and Answers
 │  (Cloud Storage)│
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│ Vertex AI       │  ← Criar embeddings (vetores 768D)
+│ Vertex AI       │  ← Create embeddings (768D vectors)
 │ text-embedding  │
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│  Embeddings     │  ← Salvar no bucket
+│  Embeddings     │  ← Saved in bucket
 │ (.npy + .csv)   │
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│   Gradio App    │  ← Auto-load ao iniciar
+│   Gradio App    │  ← Auto-loads on startup
 │ (simple_gradio  │
 │    _app.py)     │
 └────────┬────────┘
@@ -190,131 +190,131 @@ Todos funcionam! O sistema apenas lê: 1ª coluna = pergunta, 2ª = resposta.
          │
          ▼
 ┌─────────────────┐
-│   RETRIEVAL     │  ← Busca por similaridade (cosine)
+│   RETRIEVAL     │  ← Similarity search (cosine)
 │  (Top 3 FAQs)   │
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│   GENERATION    │  ← Gemini reformula resposta
-│ (Gemini 1.5)    │
+│   GENERATION    │  ← Gemini rewrites answer
+│ (Gemini 2.5)    │
 └────────┬────────┘
          │
          ▼
 ┌─────────────────┐
-│ OUTPUT FILTER   │  ← Remove dados sensíveis
+│ OUTPUT FILTER   │  ← Removes sensitive data
 │  (Regex)        │
 └────────┬────────┘
          │
          ▼
-    📤 Resposta
+    📤 Answer
 ```
 
-## 🔧 Tecnologias
+## 🔧 Technologies
 
-| Componente | Tecnologia | Por Quê |
-|------------|-----------|---------|
-| **Embeddings** | Vertex AI text-embedding-004 | 768 dimensões, SOTA performance |
-| **LLM** | Gemini 1.5 Flash | Rápido, barato, boa qualidade |
-| **Busca** | scikit-learn cosine_similarity | Simples, sem infra Vector Search |
-| **Storage** | Cloud Storage | Organizado, escalável |
-| **Interface** | Gradio | Simples (60 linhas), chat nativo, auto-reload |
-| **Python** | 3.12 (Cloud Shell) | Versão default do ambiente |
+| Component | Technology | Why | 
+|----------|------------|-----|
+| **Embeddings** | Vertex AI text-embedding-004 | 768 dimensions, SOTA performance |
+| **LLM** | Gemini 2.5 Flash | Fast, cost-effective, high quality |
+| **Search** | scikit-learn cosine_similarity | Simple, no Vector Search infra |
+| **Storage** | Cloud Storage | Organized, scalable |
+| **Interface** | Gradio | Simple (60 lines), native chat, auto-reload |
+| **Python** | 3.12 (Cloud Shell) | Default environment version |
 
-## ✅ Requisitos da Certificação
+## ✅ Certification Requirements
 
-Este projeto atende todos os requisitos do **Demo #1**:
+This project meets all **Demo #1** requirements:
 
-- [x] **Prompt Engineering:** Template com instruções de grounding
-- [x] **Chain-of-Thought:** Opcional via parâmetro (desabilitado por padrão)
-- [x] **Grounding:** Respostas baseadas apenas nos FAQs recuperados
-- [x] **Output Filtering:** Remove emails, telefones, CPFs
+- [x] **Prompt Engineering:** Template with grounding instructions
+- [x] **Chain-of-Thought:** Optional via parameter (disabled by default)
+- [x] **Grounding:** Answers based only on retrieved FAQs
+- [x] **Output Filtering:** Removes emails, phone numbers, IDs
 - [x] **Safety Settings:** Block harmful content (Gemini safety filters)
 - [x] **Retrieval:** Embeddings + cosine similarity
-- [x] **Generation:** Gemini 1.5 Flash
-- [x] **Cloud Storage:** Dados organizados em buckets
+- [x] **Generation:** Gemini 2.5 Flash
+- [x] **Cloud Storage:** Data organized in buckets
 
-## 🐛 Erros Comuns e Soluções
+## 🐛 Common Errors and Fixes
 
-### 1. Erro: `CommandException: No URLs matched`
-**Causa:** Nome de arquivo com espaços
-**Solução:** Renomear arquivo sem espaços/caracteres especiais
+### 1. Error: `CommandException: No URLs matched`
+**Cause:** File name contains spaces
+**Fix:** Rename file without spaces/special characters
 
 ```bash
-# Se arquivo já está no bucket com espaços, renomeie:
+# If the file is already in the bucket with spaces, rename it:
 python
 from google.cloud import storage
 client = storage.Client()
-bucket = client.bucket("seu-bucket")
-blob = bucket.blob("raw_data/arquivo com espaços.csv")
-bucket.copy_blob(blob, bucket, "raw_data/arquivo_sem_espacos.csv")
+bucket = client.bucket("your-bucket")
+blob = bucket.blob("raw_data/file with spaces.csv")
+bucket.copy_blob(blob, bucket, "raw_data/file_without_spaces.csv")
 blob.delete()
 ```
 
-### 2. Erro: `python-dotenv could not parse statement`
-**Causa:** Comentários decorativos no .env
-**Solução:** Remova todos os comentários decorativos!
+### 2. Error: `python-dotenv could not parse statement`
+**Cause:** Decorative comments in .env
+**Fix:** Remove all decorative comments!
 
-❌ **ERRADO:**
+❌ **WRONG:**
 ```bash
 # ============================================
-# CONFIGURAÇÃO
+# CONFIGURATION
 # ============================================
-PROJECT_ID=meu-projeto
+PROJECT_ID=my-project
 ```
 
-✅ **CORRETO:**
+✅ **CORRECT:**
 ```bash
-PROJECT_ID=meu-projeto
+PROJECT_ID=my-project
 LOCATION=us-central1
-BUCKET_NAME=meu-bucket
+BUCKET_NAME=my-bucket
 ```
 
-### 3. Erro: `AttributeError: module 'pkgutil' has no attribute 'ImpImporter'`
-**Causa:** numpy incompatível com Python 3.12
-**Solução:** Já corrigido no requirements.txt (numpy>=1.26.0)
+### 3. Error: `AttributeError: module 'pkgutil' has no attribute 'ImpImporter'`
+**Cause:** numpy incompatible with Python 3.12
+**Fix:** Already fixed in requirements.txt (numpy>=1.26.0)
 
-### 4. Git push retorna 403
-**Causa:** Branch sem prefixo `claude/`
-**Solução:**
+### 4. Git push returns 403
+**Cause:** Branch without `claude/` prefix
+**Fix:**
 ```bash
-git checkout -b claude/sua-feature-34uUC
-git push -u origin claude/sua-feature-34uUC
+git checkout -b claude/your-feature-34uUC
+git push -u origin claude/your-feature-34uUC
 ```
 
-## 📚 Mais Informações
+## 📚 More Information
 
-- **Guia Passo-a-Passo Detalhado:** `PASSO_A_PASSO.md`
-- **Documentação antiga (referência):** `archive/`
+- **Detailed step-by-step guide:** `STEP_BY_STEP.md`
+- **Legacy documentation (reference):** `archive/`
 
-## 💰 Custos Estimados
+## 💰 Estimated Costs
 
-Para 1000 perguntas/mês:
+For 1000 questions/month:
 
 - Embeddings: ~$0.05 (text-embedding-004)
-- LLM Generation: ~$0.10 (Gemini 1.5 Flash)
-- Cloud Storage: ~$0.02 (poucos MB)
+- LLM Generation: ~$0.10 (Gemini 2.5 Flash)
+- Cloud Storage: ~$0.02 (few MB)
 
-**Total:** ~$0.20/mês (aproximadamente)
+**Total:** ~$0.20/month (approx.)
 
-## 🎓 Sobre a Certificação
+## 🎓 About the Certification
 
-Este projeto foi desenvolvido para a certificação:
+This project was built for:
 **Google Cloud Gen AI Services Specialization - Demo #1**
 
-Requisitos atendidos:
-- ✅ Código original documentado
-- ✅ Dataset no Cloud Storage
-- ✅ Business goal claro (FAQ inteligente)
-- ✅ RAG completo (Retrieval + Generation)
+Requirements met:
+- ✅ Original code documented
+- ✅ Dataset in Cloud Storage
+- ✅ Clear business goal (intelligent FAQ)
+- ✅ Full RAG (Retrieval + Generation)
 - ✅ Prompt engineering
-- ✅ Output filtering e safety
+- ✅ Output filtering and safety
 
-## 📞 Suporte
+## 📞 Support
 
-**Issues:** Abra issue neste repositório
-**Docs Google Cloud:** https://cloud.google.com/vertex-ai/docs
+**Issues:** Open an issue in this repository
+**Google Cloud Docs:** https://cloud.google.com/vertex-ai/docs
 
 ---
 
-**Desenvolvido para Google Cloud Gen AI Specialization** 🚀
+**Built for Google Cloud Gen AI Services Specialization** 🚀

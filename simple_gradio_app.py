@@ -70,7 +70,7 @@ def chat_function(message, history):
         result = faq_system.ask_with_llm(message)
 
         # Return response only (no metadata)
-        return result['resposta_gerada']
+        return result['generated_answer']
 
     except Exception as e:
         # Log full error for debugging

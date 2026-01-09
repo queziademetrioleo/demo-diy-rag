@@ -1,442 +1,284 @@
 """
-Módulo para carregamento e processamento de dados do dataset Flipkart.
+Module for loading and processing the Flipkart dataset.
 
-Este módulo é responsável por:
-- Download do dataset do Kaggle
-- Limpeza e processamento dos dados
-- Upload para Google Cloud Storage
-- Preparação dos dados para geração de embeddings
+This module is responsible for:
+- Preparing data for embedding generation
 """
 
 import os
-import pandas as pd
-import numpy as np
+import json
+import tempfile
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Optional, Tuple
+
+import pandas as pd
 from google.cloud import storage
 from loguru import logger
-import re
 
 
 class DataLoader:
-    """
-    Classe para carregar e processar dados de produtos.
+    """Loads and processes dataset data."""
 
-    Attributes:
-        project_id: ID do projeto Google Cloud
-        bucket_name: Nome do bucket no Cloud Storage
-        local_data_path: Caminho local para armazenar dados
-    """
-
-    def __init__(
-        self,
-        project_id: str,
-        bucket_name: str,
-        local_data_path: str = "./data"
-    ):
+    def __init__(self, project_id: str, bucket_name: str, local_data_path: str = "./data"):
         """
-        Inicializa o DataLoader.
-
         Args:
-            project_id: ID do projeto Google Cloud
-            bucket_name: Nome do bucket no Cloud Storage
-            local_data_path: Caminho local para dados (padrão: ./data)
+            project_id: Google Cloud project ID
+            bucket_name: Cloud Storage bucket name
+            local_data_path: Local path for data (default: ./data)
         """
         self.project_id = project_id
         self.bucket_name = bucket_name
         self.local_data_path = Path(local_data_path)
-        self.storage_client = storage.Client(project=project_id)
 
-        # Criar diretório local se não existir
+        # Create local directory if it doesn't exist
         self.local_data_path.mkdir(parents=True, exist_ok=True)
 
-        logger.info(f"DataLoader inicializado para projeto: {project_id}")
+        # Initialize Cloud Storage client
+        self.storage_client = storage.Client(project=project_id)
 
     def create_bucket_if_not_exists(self) -> storage.Bucket:
-        """
-        Cria bucket no Cloud Storage se não existir.
+        """Create a bucket in Cloud Storage if it doesn't exist."""
+        bucket = self.storage_client.bucket(self.bucket_name)
+        if bucket.exists():
+            logger.info(f"Bucket '{self.bucket_name}' already exists")
+            return bucket
 
-        Returns:
-            Objeto Bucket do Cloud Storage
-        """
-        try:
-            bucket = self.storage_client.get_bucket(self.bucket_name)
-            logger.info(f"Bucket '{self.bucket_name}' já existe")
-        except Exception:
-            bucket = self.storage_client.create_bucket(
-                self.bucket_name,
-                location="us-central1"
-            )
-            logger.info(f"Bucket '{self.bucket_name}' criado com sucesso")
-
+        bucket.location = "us-central1"
+        bucket = self.storage_client.create_bucket(bucket)
+        logger.info(f"Bucket '{self.bucket_name}' created successfully")
         return bucket
 
-    def download_kaggle_dataset(
-        self,
-        dataset_name: str = "PromptCloudHQ/flipkart-products",
-        output_filename: str = "flipkart_com-ecommerce_sample.csv"
-    ) -> Path:
+    def download_kaggle_dataset(self, dataset: str = "retailrocket/ecommerce-dataset") -> str:
         """
-        Baixa dataset do Kaggle.
+        Download the dataset from Kaggle.
 
-        NOTA: Requer configuração de credenciais Kaggle em ~/.kaggle/kaggle.json
+        Note: Requires Kaggle credentials in ~/.kaggle/kaggle.json
 
         Args:
-            dataset_name: Nome do dataset no Kaggle
-            output_filename: Nome do arquivo de saída
+            dataset: Kaggle dataset identifier
 
         Returns:
-            Path para o arquivo baixado
+            Path to the downloaded file
         """
+        import kaggle
+
         try:
-            import kaggle
+            # Download dataset
+            kaggle.api.dataset_download_files(dataset, path=self.local_data_path, unzip=True)
 
-            logger.info(f"Baixando dataset: {dataset_name}")
+            # Locate CSV file
+            csv_files = list(self.local_data_path.glob("*.csv"))
+            if not csv_files:
+                raise FileNotFoundError("No CSV file found after download")
 
-            # Download para pasta local
-            kaggle.api.dataset_download_files(
-                dataset_name,
-                path=str(self.local_data_path),
-                unzip=True
-            )
-
-            file_path = self.local_data_path / output_filename
-
-            if file_path.exists():
-                logger.info(f"Dataset baixado com sucesso: {file_path}")
-                return file_path
-            else:
-                raise FileNotFoundError(
-                    f"Arquivo {output_filename} não encontrado após download"
-                )
+            return str(csv_files[0])
 
         except Exception as e:
-            logger.error(f"Erro ao baixar dataset: {e}")
+            logger.error(f"Error downloading dataset: {e}")
             raise
 
-    def load_csv(self, file_path: Path) -> pd.DataFrame:
+    def load_csv(self, file_path: str) -> pd.DataFrame:
         """
-        Carrega arquivo CSV em DataFrame.
+        Load CSV into a DataFrame.
 
         Args:
-            file_path: Caminho para o arquivo CSV
+            file_path: Path to the CSV file
 
         Returns:
-            DataFrame com os dados
+            DataFrame with data
         """
         try:
             df = pd.read_csv(file_path)
-            logger.info(f"CSV carregado: {len(df)} linhas, {len(df.columns)} colunas")
+            logger.info(f"CSV loaded: {len(df)} rows, {len(df.columns)} columns")
             return df
         except Exception as e:
-            logger.error(f"Erro ao carregar CSV: {e}")
+            logger.error(f"Error loading CSV: {e}")
             raise
-
-    def clean_text(self, text: str) -> str:
-        """
-        Limpa texto removendo caracteres especiais e normalizando.
-
-        Args:
-            text: Texto a ser limpo
-
-        Returns:
-            Texto limpo
-        """
-        if pd.isna(text):
-            return ""
-
-        # Converter para string
-        text = str(text)
-
-        # Remover HTML tags
-        text = re.sub(r'<[^>]+>', '', text)
-
-        # Remover caracteres especiais excessivos
-        text = re.sub(r'[^\w\s\.,!?-]', ' ', text)
-
-        # Normalizar espaços
-        text = re.sub(r'\s+', ' ', text)
-
-        return text.strip()
 
     def process_products(self, df: pd.DataFrame) -> pd.DataFrame:
         """
-        Processa dados de produtos.
+        Process raw product data into a standard format.
 
         Args:
-            df: DataFrame com dados brutos
+            df: Raw product DataFrame
 
         Returns:
-            DataFrame processado
+            Processed DataFrame
         """
-        logger.info("Iniciando processamento de produtos...")
+        # Normalize whitespace
+        df.columns = [col.strip().lower().replace(' ', '_') for col in df.columns]
 
-        # Criar cópia para não modificar original
+        # Create copy to avoid modifying original
         df_processed = df.copy()
 
-        # Renomear colunas para padrão
+        # Rename columns to standard
         column_mapping = {
-            'uniq_id': 'product_id',
             'product_name': 'name',
-            'description': 'description',
-            'retail_price': 'price',
-            'discounted_price': 'discounted_price',
             'product_category_tree': 'category',
+            'description': 'description',
+            'retail_price': 'retail_price',
+            'discounted_price': 'discounted_price',
             'brand': 'brand',
-            'product_rating': 'rating',
-            'overall_rating': 'overall_rating',
-            'image': 'image_url'
+            'overall_rating': 'rating',
+            'product_rating': 'rating'
         }
 
-        # Renomear apenas colunas que existem
-        existing_columns = {k: v for k, v in column_mapping.items() if k in df_processed.columns}
-        df_processed = df_processed.rename(columns=existing_columns)
+        for old_col, new_col in column_mapping.items():
+            if old_col in df_processed.columns:
+                df_processed = df_processed.rename(columns={old_col: new_col})
 
-        # Garantir que colunas essenciais existem
-        essential_columns = ['product_id', 'name', 'description']
-        for col in essential_columns:
+        # Check required columns
+        required_cols = ['name', 'category', 'description']
+        for col in required_cols:
             if col not in df_processed.columns:
-                logger.warning(f"Coluna essencial '{col}' não encontrada")
+                logger.warning(f"Required column '{col}' not found")
 
-        # Limpar textos
-        if 'name' in df_processed.columns:
-            df_processed['name'] = df_processed['name'].apply(self.clean_text)
-
-        if 'description' in df_processed.columns:
-            df_processed['description'] = df_processed['description'].apply(self.clean_text)
-
-        # Processar categoria (extrair primeira categoria)
+        # Extract first category
         if 'category' in df_processed.columns:
             df_processed['category'] = df_processed['category'].apply(
-                lambda x: self.clean_text(x).split('>>')[0] if pd.notna(x) else "Sem categoria"
+                lambda x: x.split('>>')[0].strip() if isinstance(x, str) else x
             )
 
-        # Processar preços
-        for price_col in ['price', 'discounted_price']:
-            if price_col in df_processed.columns:
-                # Remover símbolos de moeda e converter para float
-                df_processed[price_col] = df_processed[price_col].apply(
-                    lambda x: float(re.sub(r'[^\d.]', '', str(x))) if pd.notna(x) else 0.0
-                )
+        # Process prices
+        if 'discounted_price' in df_processed.columns:
+            df_processed['discounted_price'] = df_processed['discounted_price'].astype(str)
+            df_processed['discounted_price'] = df_processed['discounted_price'].str.replace('[₹,]', '', regex=True)
+            df_processed['discounted_price'] = pd.to_numeric(df_processed['discounted_price'], errors='coerce')
 
-        # Calcular desconto percentual
-        if 'price' in df_processed.columns and 'discounted_price' in df_processed.columns:
-            df_processed['discount_percent'] = (
-                (df_processed['price'] - df_processed['discounted_price']) /
-                df_processed['price'] * 100
-            ).round(2)
-            df_processed['discount_percent'] = df_processed['discount_percent'].fillna(0)
+        if 'retail_price' in df_processed.columns:
+            df_processed['retail_price'] = df_processed['retail_price'].astype(str)
+            df_processed['retail_price'] = df_processed['retail_price'].str.replace('[₹,]', '', regex=True)
+            df_processed['retail_price'] = pd.to_numeric(df_processed['retail_price'], errors='coerce')
 
-        # Criar texto combinado para embeddings
-        df_processed['combined_text'] = self._create_combined_text(df_processed)
+        # Drop rows missing critical data
+        df_processed = df_processed.dropna(subset=['name', 'description'])
 
-        # Remover linhas com textos vazios
-        df_processed = df_processed[df_processed['combined_text'].str.len() > 10]
-
-        # Reset index
-        df_processed = df_processed.reset_index(drop=True)
-
-        logger.info(f"Processamento concluído: {len(df_processed)} produtos válidos")
-
+        logger.info(f"Processing complete: {len(df_processed)} valid products")
         return df_processed
 
-    def _create_combined_text(self, df: pd.DataFrame) -> pd.Series:
+    def create_embeddings_text(self, df: pd.DataFrame) -> pd.Series:
         """
-        Cria texto combinado para geração de embeddings.
+        Create combined text for embeddings.
 
         Args:
-            df: DataFrame com dados do produto
+            df: Processed DataFrame
 
         Returns:
-            Series com textos combinados
+            Series with combined text
         """
-        combined_texts = []
-
+        texts = []
         for _, row in df.iterrows():
             parts = []
 
-            # Nome do produto
-            if 'name' in row and pd.notna(row['name']):
-                parts.append(f"Produto: {row['name']}")
+            # Name
+            if pd.notna(row.get('name')):
+                parts.append(f"Product: {row['name']}")
 
-            # Categoria
-            if 'category' in row and pd.notna(row['category']):
-                parts.append(f"Categoria: {row['category']}")
+            # Brand
+            if pd.notna(row.get('brand')):
+                parts.append(f"Brand: {row['brand']}")
 
-            # Marca
-            if 'brand' in row and pd.notna(row['brand']):
-                parts.append(f"Marca: {row['brand']}")
+            # Category
+            if pd.notna(row.get('category')):
+                parts.append(f"Category: {row['category']}")
 
-            # Descrição
-            if 'description' in row and pd.notna(row['description']):
-                # Limitar tamanho da descrição
-                desc = str(row['description'])[:500]
-                parts.append(f"Descrição: {desc}")
+            # Description
+            desc = row.get('description')
+            if pd.notna(desc):
+                # Limit description length
+                desc = str(desc)[:500]
+                parts.append(f"Description: {desc}")
 
-            # Preço
-            if 'discounted_price' in row and pd.notna(row['discounted_price']):
-                parts.append(f"Preço: R$ {row['discounted_price']:.2f}")
+            # Price
+            if pd.notna(row.get('discounted_price')):
+                parts.append(f"Price: ${row['discounted_price']:.2f}")
 
             # Rating
-            if 'rating' in row and pd.notna(row['rating']):
-                parts.append(f"Avaliação: {row['rating']}")
+            if pd.notna(row.get('rating')):
+                parts.append(f"Rating: {row['rating']}")
 
-            combined_texts.append(" | ".join(parts))
+            texts.append("\n".join(parts))
 
-        return pd.Series(combined_texts)
+        return pd.Series(texts)
 
-    def upload_to_gcs(
-        self,
-        df: pd.DataFrame,
-        blob_name: str = "raw_data/flipkart_products.csv"
-    ) -> str:
+    def upload_to_gcs(self, df: pd.DataFrame, output_filename: str = "products_processed.csv") -> str:
         """
-        Faz upload do DataFrame para Cloud Storage.
+        Upload processed data to GCS.
 
         Args:
-            df: DataFrame a ser enviado
-            blob_name: Nome do blob (caminho) no bucket
+            df: Processed DataFrame
+            output_filename: Output CSV name
 
         Returns:
-            GCS URI do arquivo
+            GCS URI
         """
-        try:
-            bucket = self.create_bucket_if_not_exists()
-            blob = bucket.blob(blob_name)
+        # Ensure bucket exists
+        bucket = self.create_bucket_if_not_exists()
 
-            # Salvar localmente primeiro
-            local_file = self.local_data_path / "processed_data.csv"
-            df.to_csv(local_file, index=False)
+        # Save to local temp file
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.csv')
+        df.to_csv(temp_file.name, index=False)
 
-            # Upload
-            blob.upload_from_filename(str(local_file))
+        # Upload to GCS
+        blob = bucket.blob(f"processed_data/{output_filename}")
+        blob.upload_from_filename(temp_file.name)
 
-            gcs_uri = f"gs://{self.bucket_name}/{blob_name}"
-            logger.info(f"Upload concluído: {gcs_uri}")
+        # Clean up temp file
+        os.unlink(temp_file.name)
 
-            return gcs_uri
+        gcs_uri = f"gs://{self.bucket_name}/processed_data/{output_filename}"
+        logger.info(f"Upload completed: {gcs_uri}")
 
-        except Exception as e:
-            logger.error(f"Erro no upload para GCS: {e}")
-            raise
+        return gcs_uri
 
-    def download_from_gcs(self, blob_name: str) -> pd.DataFrame:
+    def download_from_gcs(self, gcs_path: str) -> pd.DataFrame:
         """
-        Baixa dados do Cloud Storage.
+        Download CSV from GCS.
 
         Args:
-            blob_name: Nome do blob no bucket
+            gcs_path: Path in bucket
 
         Returns:
-            DataFrame com os dados
+            DataFrame with downloaded data
         """
-        try:
-            bucket = self.storage_client.get_bucket(self.bucket_name)
-            blob = bucket.blob(blob_name)
+        bucket = self.storage_client.bucket(self.bucket_name)
+        blob = bucket.blob(gcs_path)
 
-            # Download para arquivo local
-            local_file = self.local_data_path / "downloaded_data.csv"
-            blob.download_to_filename(str(local_file))
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.csv')
+        blob.download_to_filename(temp_file.name)
 
-            # Carregar em DataFrame
-            df = pd.read_csv(local_file)
-            logger.info(f"Download do GCS concluído: {len(df)} linhas")
+        df = pd.read_csv(temp_file.name)
+        os.unlink(temp_file.name)
 
-            return df
-
-        except Exception as e:
-            logger.error(f"Erro no download do GCS: {e}")
-            raise
-
-    def get_sample_data(self, n: int = 1000) -> pd.DataFrame:
-        """
-        Cria dataset de exemplo para testes rápidos.
-
-        Args:
-            n: Número de amostras
-
-        Returns:
-            DataFrame com dados de exemplo
-        """
-        logger.info(f"Criando dataset de exemplo com {n} produtos...")
-
-        categories = ["Eletrônicos", "Vestuário", "Casa", "Livros", "Esportes"]
-        brands = ["Samsung", "Apple", "Nike", "Adidas", "Dell", "HP"]
-
-        data = {
-            'product_id': [f"PROD{i:06d}" for i in range(n)],
-            'name': [f"Produto Exemplo {i}" for i in range(n)],
-            'description': [f"Descrição detalhada do produto {i}" for i in range(n)],
-            'category': np.random.choice(categories, n),
-            'brand': np.random.choice(brands, n),
-            'price': np.random.uniform(50, 5000, n).round(2),
-            'discounted_price': np.random.uniform(30, 4000, n).round(2),
-            'rating': np.random.uniform(3.0, 5.0, n).round(1)
-        }
-
-        df = pd.DataFrame(data)
-        df = self.process_products(df)
-
+        logger.info(f"Download from GCS complete: {len(df)} rows")
         return df
 
-
-def main():
-    """Função principal para execução standalone."""
-    import argparse
-    from dotenv import load_dotenv
-
-    load_dotenv()
-
-    parser = argparse.ArgumentParser(description="Carregar e processar dados de produtos")
-    parser.add_argument("--project-id", required=True, help="Google Cloud Project ID")
-    parser.add_argument("--bucket-name", required=True, help="Cloud Storage Bucket name")
-    parser.add_argument("--download-kaggle", action="store_true", help="Baixar dataset do Kaggle")
-    parser.add_argument("--sample-only", action="store_true", help="Usar apenas dados de exemplo")
-    parser.add_argument("--sample-size", type=int, default=1000, help="Tamanho do sample")
-
-    args = parser.parse_args()
-
-    # Inicializar DataLoader
-    loader = DataLoader(
-        project_id=args.project_id,
-        bucket_name=args.bucket_name
-    )
-
-    if args.sample_only:
-        # Usar dados de exemplo
-        df = loader.get_sample_data(n=args.sample_size)
-    else:
-        # Baixar do Kaggle se solicitado
-        if args.download_kaggle:
-            file_path = loader.download_kaggle_dataset()
-        else:
-            # Procurar arquivo local
-            file_path = loader.local_data_path / "flipkart_com-ecommerce_sample.csv"
-            if not file_path.exists():
-                raise FileNotFoundError(
-                    f"Arquivo não encontrado: {file_path}. "
-                    "Use --download-kaggle para baixar."
-                )
-
-        # Carregar e processar
-        df_raw = loader.load_csv(file_path)
-        df = loader.process_products(df_raw)
-
-    # Upload para GCS
-    gcs_uri = loader.upload_to_gcs(df)
-
-    # Estatísticas
-    logger.info("\n" + "="*50)
-    logger.info("ESTATÍSTICAS DO DATASET")
-    logger.info("="*50)
-    logger.info(f"Total de produtos: {len(df)}")
-    logger.info(f"Colunas: {list(df.columns)}")
-    if 'category' in df.columns:
-        logger.info(f"\nCategorias:")
-        logger.info(df['category'].value_counts().head())
-    logger.info(f"\nDados salvos em: {gcs_uri}")
-    logger.info("="*50)
+    def create_sample_data(self, n: int = 100) -> pd.DataFrame:
+        """Create sample data for quick tests."""
+        categories = ["Electronics", "Apparel", "Home", "Books", "Sports"]
+        data = {
+            'name': [f"Sample Product {i}" for i in range(n)],
+            'description': [f"Detailed description for product {i}" for i in range(n)],
+            'category': [categories[i % len(categories)] for i in range(n)],
+            'discounted_price': [round(10 + i * 0.5, 2) for i in range(n)],
+            'rating': [round(3.5 + (i % 5) * 0.3, 1) for i in range(n)],
+            'brand': [f"Brand {i % 10}" for i in range(n)]
+        }
+        return pd.DataFrame(data)
 
 
 if __name__ == "__main__":
-    main()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Data loader and processor")
+    parser.add_argument("--bucket-name", required=True, help="Cloud Storage Bucket name")
+    parser.add_argument("--project-id", required=True, help="Google Cloud Project ID")
+    parser.add_argument("--local-path", default="./data", help="Local data path")
+    args = parser.parse_args()
+
+    loader = DataLoader(project_id=args.project_id, bucket_name=args.bucket_name, local_data_path=args.local_path)
+    df = loader.create_sample_data(n=100)
+    gcs_uri = loader.upload_to_gcs(df)
+    logger.info("DATASET STATISTICS")
+    logger.info(f"Rows: {len(df)}")
+    logger.info(f"Saved to: {gcs_uri}")
