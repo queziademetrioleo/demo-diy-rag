@@ -6,7 +6,7 @@ Este script:
 1. Baixa o CSV do Cloud Storage
 2. Cria a base de conhecimento (embeddings)
 3. Faz upload da base para o bucket
-4. Testa o sistema com perguntas de exemplo
+4. Testa o sistema com Questionss de exemplo
 """
 
 import os
@@ -161,17 +161,17 @@ def main():
         sys.exit(1)
 
     # ETAPA 3: Carregar CSV
-    print_section("ETAPA 3: Carregando Perguntas e Respostas")
+    print_section("ETAPA 3: Carregando Questionss e Answers")
 
     try:
         faq.load_csv(csv_file)
-        print(f"\n📊 Total de perguntas: {len(faq.df)}")
-        print("\n📝 Primeiras 5 perguntas:")
+        print(f"\n📊 Total de Questionss: {len(faq.df)}")
+        print("\n📝 Primeiras 5 Questionss:")
         for i, row in faq.df.head(5).iterrows():
-            print(f"   {i+1}. {row['pergunta'][:60]}...")
+            print(f"   {i+1}. {row['Questions'][:60]}...")
     except Exception as e:
         print(f"❌ Erro ao carregar CSV: {e}")
-        print("\n💡 Verifique se o CSV tem as colunas: 'pergunta' e 'resposta'")
+        print("\n💡 Verifique se o CSV tem as colunas: 'Questions' e 'Answers'")
         sys.exit(1)
 
     # ETAPA 4: Criar base de conhecimento
@@ -216,10 +216,10 @@ def main():
     # ETAPA 7: Testar sistema
     print_section("ETAPA 7: Testando Sistema")
 
-    # Pegar primeiras 3 perguntas para testar
-    test_queries = faq.df['pergunta'].head(3).tolist()
+    # Pegar primeiras 3 s para testar
+    test_queries = faq.df[''].head(3).tolist()
 
-    print("🧪 Fazendo 3 perguntas de teste:\n")
+    print("🧪 Fazendo 3 Questionss de teste:\n")
 
     for i, query in enumerate(test_queries, 1):
         print(f"\n{'─'*70}")
@@ -242,12 +242,12 @@ def main():
     print_section("✅ PROCESSO CONCLUÍDO COM SUCESSO!")
 
     print("📊 Resumo:")
-    print(f"   • {len(faq.df)} perguntas processadas")
+    print(f"   • {len(faq.df)} Questionss processadas")
     print(f"   • Base de conhecimento criada")
     print(f"   • Arquivos salvos no bucket: gs://{bucket_name}/")
 
     print("\n🎯 Próximos passos:")
-    print("   1. Testar mais perguntas:")
+    print("   1. Testar mais Questionss:")
     print("      python simple_scripts/01_test_system.py")
     print("\n   2. Abrir interface web:")
     print("      streamlit run simple_app.py")
