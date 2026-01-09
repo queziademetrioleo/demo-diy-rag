@@ -64,13 +64,13 @@ def main():
 
     # Carregar CSV
     print("\n" + "="*70)
-    print("PASSO 2: Carregando perguntas e respostas...")
+    print("PASSO 2: Carregando Questionss e Answerss...")
     print("="*70)
 
     try:
         faq.load_csv(csv_path)
         stats = faq.get_stats()
-        print(f"✅ {stats['total_perguntas']} perguntas carregadas!")
+        print(f"✅ {stats['total_Questionss']} Questionss carregadas!")
     except Exception as e:
         print(f"❌ Erro ao carregar CSV: {e}")
         return 1
@@ -90,9 +90,9 @@ def main():
         print("   gcloud services enable aiplatform.googleapis.com")
         return 1
 
-    # Testar perguntas
+    # Testar Questionss
     print("\n" + "="*70)
-    print("PASSO 4: Testando perguntas...")
+    print("PASSO 4: Testando Questionss...")
     print("="*70)
 
     test_questions = [
@@ -104,31 +104,31 @@ def main():
 
     for i, question in enumerate(test_questions, 1):
         print(f"\n📝 Teste {i}/{len(test_questions)}")
-        print(f"❓ Pergunta: {question}")
+        print(f"❓ Questions: {question}")
 
         try:
             result = faq.ask(question)
 
             if result['found']:
-                print(f"✅ Resposta encontrada (confiança: {result['confidence']})")
-                print(f"💬 {result['resposta']}")
+                print(f"✅ Answers encontrada (confiança: {result['confidence']})")
+                print(f"💬 {result['Answers']}")
                 print(f"📊 Score: {result['score']:.1%}")
-                print(f"🔗 Pergunta original: {result['pergunta_encontrada']}")
+                print(f"🔗 Questions original: {result['Questions_encontrada']}")
             else:
-                print("❌ Nenhuma resposta encontrada")
+                print("❌ Nenhuma Answers encontrada")
 
         except Exception as e:
             print(f"❌ Erro: {e}")
 
     # Modo interativo
     print("\n" + "="*70)
-    print("MODO INTERATIVO - Faça suas perguntas!")
+    print("MODO INTERATIVO - Faça suas Questionss!")
     print("="*70)
     print("Digite 'sair' para encerrar\n")
 
     while True:
         try:
-            question = input("❓ Sua pergunta: ").strip()
+            question = input("❓ Sua Questions: ").strip()
 
             if not question:
                 continue
@@ -140,11 +140,11 @@ def main():
             result = faq.ask(question)
 
             if result['found']:
-                print(f"\n💬 Resposta (confiança: {result['confidence']}):")
-                print(f"   {result['resposta']}")
+                print(f"\n💬 Answers (confiança: {result['confidence']}):")
+                print(f"   {result['Answers']}")
                 print(f"   Score: {result['score']:.1%}\n")
             else:
-                print("\n❌ Desculpe, não encontrei uma resposta para isso.\n")
+                print("\n❌ Desculpe, não encontrei uma Answers para isso.\n")
 
         except KeyboardInterrupt:
             print("\n\n👋 Até logo!")
@@ -156,7 +156,7 @@ def main():
     print("✅ TESTE CONCLUÍDO COM SUCESSO!")
     print("="*70)
     print("\n📚 Próximos passos:")
-    print("1. Use seu próprio CSV com perguntas/respostas")
+    print("1. Use seu próprio CSV com Questionss/Answerss")
     print("2. Execute: python simple_scripts/02_save_knowledge_base.py")
     print("3. Depois: streamlit run simple_app.py")
     print("="*70)
