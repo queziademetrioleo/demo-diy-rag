@@ -158,7 +158,7 @@ def main():
     print("\n📚 Próximos passos:")
     print("1. Use seu próprio CSV com Questionss/Answerss")
     print("2. Execute: python simple_scripts/02_save_knowledge_base.py")
-    print("3. Depois: streamlit run simple_app.py")
+    print("3. Depois: python simple_gradio_app.py")
     print("="*70)
 
     return 0

@@ -24,7 +24,7 @@ from loguru import logger
 from sklearn.metrics.pairwise import cosine_similarity
 import json
 import re
-from vertexai.generative_models import GenerativeModel, GenerationConfig
+from vertexai.generative_models import GenerativeModel, GenerationConfig, HarmCategory, HarmBlockThreshold
 
 
 class SimpleFAQSystem:
@@ -65,7 +65,7 @@ class SimpleFAQSystem:
         self.embedding_model = TextEmbeddingModel.from_pretrained("text-embedding-004")
 
         # Modelo LLM para geração (Gemini)
-        self.llm_model = GenerativeModel("gemini-1.5-flash-002")
+        self.llm_model = GenerativeModel("gemini-2.5-flash")
 
         # Configuração do LLM
         self.generation_config = GenerationConfig(
@@ -81,63 +81,50 @@ class SimpleFAQSystem:
         """
         Carrega CSV com perguntas e respostas.
 
-        O CSV pode ter colunas em português ('pergunta'/'resposta')
-        ou inglês ('Questions'/'Answers')
+        Usa as duas primeiras colunas do CSV:
+        - Coluna 0: Perguntas (qualquer nome: Questions, pergunta, Q, etc.)
+        - Coluna 1: Respostas (qualquer nome: Answers, resposta, A, etc.)
 
         Args:
-            csv_path: Caminho para o arquivo CSV
+            csv_path: Caminho para o arquivo CSV (mínimo 2 colunas)
 
         Returns:
-            DataFrame carregado
+            DataFrame com colunas padronizadas ('pergunta', 'resposta', 'id')
         """
         logger.info(f"📂 Carregando CSV: {csv_path}")
 
         df = pd.read_csv(csv_path)
 
-        # Mapear colunas (aceita português ou inglês)
-        column_mapping = {}
-
-        # Detectar coluna de perguntas
-        if 'Questions' in df.columns:
-            column_mapping['Questions'] = 'pergunta'
-        elif 'Question' in df.columns:
-            column_mapping['Question'] = 'pergunta'
-        elif 'pergunta' in df.columns:
-            pass  # já está correto
-        else:
+        # Validar que tem pelo menos 2 colunas
+        if len(df.columns) < 2:
             raise ValueError(
-                f"CSV deve ter coluna 'Questions', 'Question' ou 'pergunta'. "
-                f"Colunas encontradas: {list(df.columns)}"
+                f"CSV precisa ter pelo menos 2 colunas (perguntas e respostas). "
+                f"Encontradas: {len(df.columns)} coluna(s)"
             )
 
-        # Detectar coluna de respostas
-        if 'Answers' in df.columns:
-            column_mapping['Answers'] = 'resposta'
-        elif 'Answer' in df.columns:
-            column_mapping['Answer'] = 'resposta'
-        elif 'resposta' in df.columns:
-            pass  # já está correto
-        else:
-            raise ValueError(
-                f"CSV deve ter coluna 'Answers', 'Answer' ou 'resposta'. "
-                f"Colunas encontradas: {list(df.columns)}"
-            )
+        # Pegar nomes das duas primeiras colunas
+        col_pergunta = df.columns[0]
+        col_resposta = df.columns[1]
 
-        # Renomear colunas se necessário
-        if column_mapping:
-            df = df.rename(columns=column_mapping)
-            logger.info(f"✅ Colunas mapeadas: {column_mapping}")
+        logger.info(f"📊 Usando colunas: '{col_pergunta}' (perguntas) | '{col_resposta}' (respostas)")
+
+        # Criar novo DataFrame com nomes padronizados
+        # Usa as duas primeiras colunas, independente do nome
+        df_padronizado = pd.DataFrame({
+            'pergunta': df.iloc[:, 0],  # Primeira coluna
+            'resposta': df.iloc[:, 1]   # Segunda coluna
+        })
 
         # Remover linhas vazias
-        df = df.dropna(subset=['pergunta', 'resposta'])
+        df_padronizado = df_padronizado.dropna(subset=['pergunta', 'resposta'])
 
         # Adicionar ID
-        df['id'] = [f"FAQ_{i:04d}" for i in range(len(df))]
+        df_padronizado['id'] = [f"FAQ_{i:04d}" for i in range(len(df_padronizado))]
 
-        self.df = df
+        self.df = df_padronizado
 
-        logger.info(f"✅ {len(df)} perguntas carregadas")
-        return df
+        logger.info(f"✅ {len(df_padronizado)} perguntas carregadas")
+        return df_padronizado
 
     def generate_embeddings(self, texts: List[str], batch_size: int = 250) -> np.ndarray:
         """
@@ -309,7 +296,7 @@ class SimpleFAQSystem:
                 'pergunta_usuario': query,
                 'pergunta_encontrada': None,
                 'resposta_original': None,
-                'resposta_gerada': "Desculpe, não encontrei informações relevantes sobre essa pergunta em nossa base de conhecimento.",
+                'resposta_gerada': "Sorry, I couldn't find relevant information about that question in our knowledge base.",
                 'score': 0.0,
                 'confidence': 'baixa',
                 'found': False,
@@ -368,56 +355,56 @@ class SimpleFAQSystem:
         context_text = ""
         for i, faq in enumerate(context_faqs, 1):
             context_text += f"\n[FAQ {i}]\n"
-            context_text += f"Pergunta: {faq['pergunta']}\n"
-            context_text += f"Resposta: {faq['resposta']}\n"
-            context_text += f"Relevância: {faq['score']:.0%}\n"
+            context_text += f"Question: {faq['pergunta']}\n"
+            context_text += f"Answer: {faq['resposta']}\n"
+            context_text += f"Relevance: {faq['score']:.0%}\n"
 
         if use_chain_of_thought:
             # Chain-of-thought prompting
-            prompt = f"""Você é um assistente FAQ especializado. Responda à pergunta do usuário seguindo este processo:
+            prompt = f"""You are a specialized FAQ assistant. Answer the user's question following this process:
 
-1. ANÁLISE: Analise a pergunta do usuário e identifique qual FAQ é mais relevante.
-2. RACIOCÍNIO: Explique brevemente por que essa FAQ responde a pergunta.
-3. RESPOSTA: Forneça a resposta final de forma clara e direta.
+1. ANALYSIS: Analyze the user's question and identify which FAQ is most relevant.
+2. REASONING: Briefly explain why this FAQ answers the question.
+3. ANSWER: Provide the final answer clearly and directly.
 
-CONTEXTO (FAQs encontrados em nossa base):
+CONTEXT (FAQs found in our database):
 {context_text}
 
-PERGUNTA DO USUÁRIO:
+USER'S QUESTION:
 {user_query}
 
-INSTRUÇÕES IMPORTANTES:
-- Use APENAS informações dos FAQs acima
-- Se a pergunta não puder ser respondida com os FAQs, diga claramente
-- Seja conciso e direto
-- Mantenha tom profissional e prestativo
+IMPORTANT INSTRUCTIONS:
+- Use ONLY information from the FAQs above
+- If the question cannot be answered with the FAQs, say so clearly
+- Be concise and direct
+- Maintain a professional and helpful tone
 
-RESPOSTA (siga o formato 1-2-3):"""
+ANSWER (follow format 1-2-3):"""
 
         else:
             # Prompt padrão (mais direto)
-            prompt = f"""Você é um assistente FAQ especializado e prestativo. Sua função é responder perguntas usando APENAS as informações da base de conhecimento fornecida.
+            prompt = f"""You are a specialized and helpful FAQ assistant. Your role is to answer questions using ONLY the information from the provided knowledge base.
 
-BASE DE CONHECIMENTO (FAQs relevantes):
+KNOWLEDGE BASE (relevant FAQs):
 {context_text}
 
-PERGUNTA DO USUÁRIO:
+USER'S QUESTION:
 {user_query}
 
-INSTRUÇÕES:
-- Se o usuário apenas cumprimentar (olá, oi, bom dia, etc.) SEM fazer uma pergunta específica:
-  * Cumprimente de volta de forma amigável
-  * Apresente-se como assistente FAQ
-  * Incentive a fazer uma pergunta: "Como posso ajudar? Faça sua pergunta!"
-  * NÃO diga que não encontrou informações
+INSTRUCTIONS:
+- If the user only greets (hello, hi, good morning, etc.) WITHOUT asking a specific question:
+  * Greet back in a friendly way
+  * Introduce yourself as an FAQ assistant
+  * Encourage them to ask a question: "How can I help? Ask your question!"
+  * DO NOT say you didn't find information
 
-- Se o usuário fizer uma pergunta real:
-  * Use APENAS as informações dos FAQs acima
-  * Se os FAQs não respondem a pergunta, diga: "Não encontrei informações específicas sobre isso em nossa base de conhecimento"
-  * Seja claro, direto e prestativo
-  * Reformule a resposta do FAQ de forma natural, sem copiar exatamente
+- If the user asks a real question:
+  * Use ONLY the information from the FAQs above
+  * If the FAQs don't answer the question, say: "I couldn't find specific information about that in our knowledge base"
+  * Be clear, direct, and helpful
+  * Rephrase the FAQ answer naturally, don't copy exactly
 
-RESPOSTA:"""
+ANSWER:"""
 
         return prompt
 
@@ -436,10 +423,10 @@ RESPOSTA:"""
                 prompt,
                 generation_config=self.generation_config,
                 safety_settings={
-                    "HARASSMENT": "BLOCK_MEDIUM_AND_ABOVE",
-                    "HATE_SPEECH": "BLOCK_MEDIUM_AND_ABOVE",
-                    "SEXUALLY_EXPLICIT": "BLOCK_MEDIUM_AND_ABOVE",
-                    "DANGEROUS_CONTENT": "BLOCK_MEDIUM_AND_ABOVE",
+                    HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                    HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                    HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
+                    HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_MEDIUM_AND_ABOVE,
                 }
             )
 
@@ -451,7 +438,7 @@ RESPOSTA:"""
 
         except Exception as e:
             logger.error(f"❌ Erro ao gerar com LLM: {e}")
-            return "Desculpe, ocorreu um erro ao processar sua pergunta. Por favor, tente novamente."
+            return "Sorry, an error occurred while processing your question. Please try again."
 
     def _filter_output(self, text: str) -> str:
         """

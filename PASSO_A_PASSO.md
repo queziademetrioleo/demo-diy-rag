@@ -143,9 +143,10 @@ gsutil cp data/faq_example.csv gs://$(gcloud config get-value project)-data/raw_
 
 ### Opção B: Usar Seu Próprio CSV
 
-**Seu CSV precisa ter colunas:**
-- `Questions` e `Answers` (inglês), OU
-- `pergunta` e `resposta` (português)
+**Regra do CSV:**
+- Mínimo **2 colunas**
+- **1ª coluna:** Perguntas (qualquer nome: Questions, pergunta, Q, etc.)
+- **2ª coluna:** Respostas (qualquer nome: Answers, resposta, A, etc.)
 
 **PASSO 1: Renomear arquivo (se necessário)**
 
