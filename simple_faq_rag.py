@@ -81,63 +81,50 @@ class SimpleFAQSystem:
         """
         Carrega CSV com perguntas e respostas.
 
-        O CSV pode ter colunas em português ('pergunta'/'resposta')
-        ou inglês ('Questions'/'Answers')
+        Usa as duas primeiras colunas do CSV:
+        - Coluna 0: Perguntas (qualquer nome: Questions, pergunta, Q, etc.)
+        - Coluna 1: Respostas (qualquer nome: Answers, resposta, A, etc.)
 
         Args:
-            csv_path: Caminho para o arquivo CSV
+            csv_path: Caminho para o arquivo CSV (mínimo 2 colunas)
 
         Returns:
-            DataFrame carregado
+            DataFrame com colunas padronizadas ('pergunta', 'resposta', 'id')
         """
         logger.info(f"📂 Carregando CSV: {csv_path}")
 
         df = pd.read_csv(csv_path)
 
-        # Mapear colunas (aceita português ou inglês)
-        column_mapping = {}
-
-        # Detectar coluna de perguntas
-        if 'Questions' in df.columns:
-            column_mapping['Questions'] = 'pergunta'
-        elif 'Question' in df.columns:
-            column_mapping['Question'] = 'pergunta'
-        elif 'pergunta' in df.columns:
-            pass  # já está correto
-        else:
+        # Validar que tem pelo menos 2 colunas
+        if len(df.columns) < 2:
             raise ValueError(
-                f"CSV deve ter coluna 'Questions', 'Question' ou 'pergunta'. "
-                f"Colunas encontradas: {list(df.columns)}"
+                f"CSV precisa ter pelo menos 2 colunas (perguntas e respostas). "
+                f"Encontradas: {len(df.columns)} coluna(s)"
             )
 
-        # Detectar coluna de respostas
-        if 'Answers' in df.columns:
-            column_mapping['Answers'] = 'resposta'
-        elif 'Answer' in df.columns:
-            column_mapping['Answer'] = 'resposta'
-        elif 'resposta' in df.columns:
-            pass  # já está correto
-        else:
-            raise ValueError(
-                f"CSV deve ter coluna 'Answers', 'Answer' ou 'resposta'. "
-                f"Colunas encontradas: {list(df.columns)}"
-            )
+        # Pegar nomes das duas primeiras colunas
+        col_pergunta = df.columns[0]
+        col_resposta = df.columns[1]
 
-        # Renomear colunas se necessário
-        if column_mapping:
-            df = df.rename(columns=column_mapping)
-            logger.info(f"✅ Colunas mapeadas: {column_mapping}")
+        logger.info(f"📊 Usando colunas: '{col_pergunta}' (perguntas) | '{col_resposta}' (respostas)")
+
+        # Criar novo DataFrame com nomes padronizados
+        # Usa as duas primeiras colunas, independente do nome
+        df_padronizado = pd.DataFrame({
+            'pergunta': df.iloc[:, 0],  # Primeira coluna
+            'resposta': df.iloc[:, 1]   # Segunda coluna
+        })
 
         # Remover linhas vazias
-        df = df.dropna(subset=['pergunta', 'resposta'])
+        df_padronizado = df_padronizado.dropna(subset=['pergunta', 'resposta'])
 
         # Adicionar ID
-        df['id'] = [f"FAQ_{i:04d}" for i in range(len(df))]
+        df_padronizado['id'] = [f"FAQ_{i:04d}" for i in range(len(df_padronizado))]
 
-        self.df = df
+        self.df = df_padronizado
 
-        logger.info(f"✅ {len(df)} perguntas carregadas")
-        return df
+        logger.info(f"✅ {len(df_padronizado)} perguntas carregadas")
+        return df_padronizado
 
     def generate_embeddings(self, texts: List[str], batch_size: int = 250) -> np.ndarray:
         """

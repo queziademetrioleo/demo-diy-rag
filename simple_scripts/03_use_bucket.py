@@ -171,7 +171,10 @@ def main():
             print(f"   {i+1}. {row['pergunta'][:60]}...")
     except Exception as e:
         print(f"❌ Erro ao carregar CSV: {e}")
-        print("\n💡 Verifique se o CSV tem as colunas: 'pergunta' e 'resposta'")
+        print("\n💡 Dicas:")
+        print("   - CSV precisa ter pelo menos 2 colunas")
+        print("   - Coluna 1: Perguntas (qualquer nome)")
+        print("   - Coluna 2: Respostas (qualquer nome)")
         sys.exit(1)
 
     # ETAPA 4: Criar base de conhecimento
@@ -250,7 +253,7 @@ def main():
     print("   1. Testar mais perguntas:")
     print("      python simple_scripts/01_test_system.py")
     print("\n   2. Abrir interface web:")
-    print("      streamlit run simple_app.py")
+    print("      python simple_gradio_app.py")
 
     print("\n💡 A base de conhecimento está salva no bucket!")
     print("   Você NÃO precisa reprocessar sempre.")

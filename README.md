@@ -129,23 +129,35 @@ Clique em "Web Preview" (porta 8080) no Cloud Shell para abrir a interface!
 
 ## 📊 Formato do CSV
 
-Seu CSV precisa ter colunas de perguntas e respostas. O sistema aceita:
+**Regra simples:** O sistema usa as **2 primeiras colunas** do CSV:
+- **Coluna 1 (índice 0):** Perguntas
+- **Coluna 2 (índice 1):** Respostas
 
-**Inglês:**
+**Os nomes das colunas podem ser QUALQUER COISA!**
+
+**Exemplos que funcionam:**
+
 ```csv
 Questions,Answers
 "How to reset password?","Go to Settings > Account > Reset Password..."
-"What is the return policy?","You can return items within 30 days..."
 ```
 
-**Português:**
 ```csv
 pergunta,resposta
 "Como resetar senha?","Vá em Configurações > Conta > Resetar Senha..."
-"Qual a política de devolução?","Você pode devolver itens em até 30 dias..."
 ```
 
-O código detecta automaticamente e mapeia para formato interno.
+```csv
+Q,A
+"What?","This..."
+```
+
+```csv
+question_text,answer_text
+"Help?","Sure..."
+```
+
+Todos funcionam! O sistema apenas lê: 1ª coluna = pergunta, 2ª = resposta.
 
 ## 🏗️ Arquitetura
 
