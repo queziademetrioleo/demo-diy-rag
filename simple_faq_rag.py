@@ -69,10 +69,10 @@ class SimpleFAQSystem:
 
         # Configuração do LLM
         self.generation_config = GenerationConfig(
-            temperature=0.2,  # Baixa temperatura para respostas mais consistentes
-            top_p=0.8,
+            temperature=0.7,  # Temperatura moderada para respostas mais naturais e detalhadas
+            top_p=0.9,
             top_k=40,
-            max_output_tokens=1024,
+            max_output_tokens=2048,  # Permite respostas mais longas
         )
 
         logger.info("✅ Sistema FAQ inicializado (com LLM)!")
@@ -391,20 +391,34 @@ KNOWLEDGE BASE (relevant FAQs):
 USER'S QUESTION:
 {user_query}
 
-INSTRUCTIONS:
-- If the user only greets (hello, hi, good morning, etc.) WITHOUT asking a specific question:
-  * Greet back in a friendly way
-  * Introduce yourself as an FAQ assistant
-  * Encourage them to ask a question: "How can I help? Ask your question!"
-  * DO NOT say you didn't find information
+INSTRUCTIONS FOR HIGH-QUALITY ANSWERS:
 
-- If the user asks a real question:
-  * Use ONLY the information from the FAQs above
-  * If the FAQs don't answer the question, say: "I couldn't find specific information about that in our knowledge base"
-  * Be clear, direct, and helpful
-  * Rephrase the FAQ answer naturally, don't copy exactly
+1. **If greeting only** (hello, hi, good morning):
+   - Greet back warmly
+   - Introduce yourself as an FAQ assistant
+   - Invite them to ask a question
+   - DO NOT say you didn't find information
 
-ANSWER:"""
+2. **If real question asked**:
+   - **BE COMPREHENSIVE**: Provide complete, well-developed answers
+   - **ADD CONTEXT**: Explain WHY and HOW, not just WHAT
+   - **USE EXAMPLES**: When helpful, include specific examples from the FAQ
+   - **BE CONVERSATIONAL**: Write naturally, as if talking to a person
+   - **STRUCTURE WELL**: Use paragraphs or bullet points for clarity
+   - **STAY GROUNDED**: Use ONLY information from FAQs above
+   - **BE HELPFUL**: Anticipate follow-up questions and address them
+
+3. **Quality standards**:
+   - Minimum 2-3 sentences for simple questions
+   - 4-5 sentences for complex questions
+   - Break into paragraphs if answer has multiple parts
+   - Don't just copy the FAQ - expand and explain naturally
+
+4. **If information not available**:
+   - Say clearly: "I couldn't find specific information about that in our knowledge base"
+   - Suggest related topics if available
+
+ANSWER (make it comprehensive and helpful):"""
 
         return prompt
 
