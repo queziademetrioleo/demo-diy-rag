@@ -163,8 +163,11 @@ if __name__ == '__main__':
     print("  POST /search              - Search FAQs (no LLM)")
     print("\n" + "="*70 + "\n")
 
+    # Get port from environment (Cloud Run compatibility)
+    port = int(os.getenv('PORT', 8080))
+
     app.run(
         host='0.0.0.0',
-        port=8081,
+        port=port,
         debug=False
     )
