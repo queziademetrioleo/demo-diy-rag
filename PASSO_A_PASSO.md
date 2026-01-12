@@ -455,6 +455,232 @@ To create a public link, set `share=True` in `launch()`.
 
 ---
 
+## 📡 PASSO 11: Deploy no Cloud Run (Endpoint para Certificação)
+
+**⚠️ IMPORTANTE:** Para a certificação Google Cloud Gen AI, você **NÃO PODE** usar localhost. Precisa de um **endpoint deployado no GCP**.
+
+### 11.1 Por que preciso disso?
+
+**Requisitos da certificação:**
+- ✅ Serviço rodando no GCP (não localhost)
+- ✅ Endpoint HTTPS acessível via rede
+- ✅ Usa Vertex AI (Gemini + Embeddings)
+- ✅ Autenticação IAM
+
+**Cloud Run oferece tudo isso automaticamente!**
+
+---
+
+### 11.2 Deploy com IAM Authentication (Recomendado)
+
+**Este é o método RECOMENDADO para a certificação.**
+
+```bash
+# No Cloud Shell, execute:
+./deploy_cloud_run_iam.sh
+```
+
+**O que esse script faz:**
+
+1. ✅ Habilita APIs necessárias (Cloud Build, Cloud Run)
+2. ✅ Cria imagem Docker do seu sistema
+3. ✅ Faz deploy no Cloud Run
+4. ✅ Configura autenticação IAM
+5. ✅ Retorna o URL do endpoint
+
+**Tempo estimado:** 5-7 minutos
+
+**Saída esperada:**
+```
+======================================================================
+✅ DEPLOYMENT SUCCESSFUL (IAM AUTHENTICATED)!
+======================================================================
+
+Service URL: https://faq-chatbot-api-abc123-uc.a.run.app
+
+⚠️  This service requires authentication!
+
+To test, you need to:
+
+1. Get authentication token:
+   TOKEN=$(gcloud auth print-identity-token)
+
+2. Test with token:
+   curl https://faq-chatbot-api-abc123-uc.a.run.app/health \
+     -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+### 11.3 Testar o Endpoint Deployado
+
+**Passo 1: Obter token de autenticação**
+```bash
+TOKEN=$(gcloud auth print-identity-token)
+```
+
+**Passo 2: Salvar URL do serviço**
+```bash
+SERVICE_URL=$(gcloud run services describe faq-chatbot-api \
+  --region=us-central1 \
+  --format='value(status.url)')
+
+echo "Seu endpoint: $SERVICE_URL"
+```
+
+**Passo 3: Testar health check**
+```bash
+curl $SERVICE_URL/health \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+**Resposta esperada:**
+```json
+{
+  "status": "healthy",
+  "total_questions": 25,
+  "model": "gemini-2.5-flash",
+  "embeddings": "text-embedding-004"
+}
+```
+
+**Passo 4: Fazer uma pergunta**
+```bash
+curl -X POST $SERVICE_URL/ask \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "How do I reset my password?"}'
+```
+
+**Resposta esperada:**
+```json
+{
+  "answer": "To reset your password, go to Settings > Security > Reset Password. You'll receive an email with instructions.",
+  "confidence": "high",
+  "score": 0.95,
+  "found": true
+}
+```
+
+**✅ Checkpoint:** Endpoint responde com sucesso e mostra uso do Vertex AI
+
+---
+
+### 11.4 Dar Acesso para Outras Pessoas
+
+**Para dar acesso à estagiária ou avaliador:**
+
+```bash
+# Substituir pelo email real
+gcloud run services add-iam-policy-binding faq-chatbot-api \
+  --region=us-central1 \
+  --member='user:estagiaria@example.com' \
+  --role='roles/run.invoker'
+```
+
+**Depois disso, a pessoa pode acessar assim:**
+
+```bash
+# Ela precisa fazer login primeiro
+gcloud auth login
+
+# Obter token
+TOKEN=$(gcloud auth print-identity-token)
+
+# Testar endpoint
+curl https://faq-chatbot-api-abc123-uc.a.run.app/health \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+---
+
+### 11.5 Verificar Custos
+
+**Cloud Run - Free tier:**
+- ✅ Primeiros 2 milhões de requests: GRÁTIS
+- ✅ 180k vCPU-seconds por mês: GRÁTIS
+- ✅ 360k GiB-seconds por mês: GRÁTIS
+
+**Vertex AI:**
+- Gemini 2.5 Flash: ~$0.00025 por 1K caracteres
+- Embeddings: ~$0.00002 por 1K caracteres
+
+**Custo total estimado:**
+- Uso leve (1k requests): **GRÁTIS** (free tier)
+- Uso moderado (10k requests): **$2-5/mês**
+- Uso intenso (100k requests): **$20-30/mês**
+
+---
+
+### 11.6 Monitorar o Serviço
+
+**Ver logs:**
+```bash
+gcloud logging read "resource.type=cloud_run_revision AND resource.labels.service_name=faq-chatbot-api" \
+  --limit=50 \
+  --format=json
+```
+
+**Ver métricas:**
+```bash
+# Abrir no navegador
+echo "https://console.cloud.google.com/run/detail/us-central1/faq-chatbot-api/metrics"
+```
+
+**Deletar serviço (se necessário):**
+```bash
+gcloud run services delete faq-chatbot-api --region=us-central1
+```
+
+---
+
+### 11.7 Alternativa: Deploy Público (Sem Autenticação)
+
+**⚠️ Menos seguro, mas também válido para certificação**
+
+Se você quiser um endpoint **público** (sem necessidade de token):
+
+```bash
+./deploy_cloud_run.sh
+```
+
+**Diferença:**
+- Qualquer pessoa pode acessar (sem token)
+- Útil para demos rápidas
+- Menos pontos na certificação (sem IAM)
+
+**Testar (sem token):**
+```bash
+curl https://faq-chatbot-api-abc123-uc.a.run.app/health
+```
+
+---
+
+### 11.8 O que Submeter para Certificação
+
+**Você precisa fornecer:**
+
+1. **URL do serviço:**
+   ```
+   https://faq-chatbot-api-abc123-uc.a.run.app
+   ```
+
+2. **Screenshot do /health endpoint:**
+   - Mostrando `"model": "gemini-2.5-flash"`
+   - Mostrando `"embeddings": "text-embedding-004"`
+
+3. **Exemplo de request/response:**
+   - Pergunta feita
+   - Resposta gerada
+
+4. **Prova de deployment no GCP:**
+   - URL com domínio `.run.app` (Cloud Run)
+   - OU screenshot do console GCP
+
+**✅ Pronto! Você tem um endpoint válido para certificação.**
+
+---
+
 ## 🎉 Parabéns!
 
 Você criou um sistema RAG completo:
