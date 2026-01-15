@@ -3,11 +3,25 @@
 
 set -e
 
-# Configuration
-PROJECT_ID="${PROJECT_ID:-teste-de-big-query-472216}"
+# ============================
+# REQUIRED ENVIRONMENT CHECK
+# ============================
+if [[ -z "${PROJECT_ID}" ]]; then
+  echo "❌ ERROR: PROJECT_ID environment variable is not set."
+  echo ""
+  echo "Set it before running the script:"
+  echo "  export PROJECT_ID=your-gcp-project-id"
+  echo ""
+  exit 1
+fi
+
+# ============================
+# CONFIGURATION
+# ============================
 REGION="us-central1"
 SERVICE_NAME="faq-chatbot-api"
 IMAGE_NAME="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
+BUCKET_NAME="${PROJECT_ID}-data"
 
 echo "======================================================================"
 echo "DEPLOYING FAQ CHATBOT API TO CLOUD RUN"
@@ -18,7 +32,9 @@ echo "Region: ${REGION}"
 echo "Service: ${SERVICE_NAME}"
 echo ""
 
-# Check if gcloud is authenticated
+# ============================
+# AUTH CHECK
+# ============================
 echo "1️⃣  Checking authentication..."
 gcloud auth list
 
