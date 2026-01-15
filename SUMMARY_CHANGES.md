@@ -88,6 +88,7 @@ Set it before running the script:
 | `deploy_cloud_run_iam.sh` | Require PROJECT_ID, sem fallback |
 | `deploy_cloud_run.sh` | Require PROJECT_ID, sem fallback |
 | `PASSO_A_PASSO.md` | Placeholders genéricos com instruções |
+| `archive/COMO_SUBIR_CSV.md` | Placeholders genéricos (17 replacements) |
 
 ---
 
@@ -96,5 +97,6 @@ Set it before running the script:
 1. `ae3020d` - fix: Remove hardcoded from deploy_cloud_run.sh
 2. `f13e641` - docs: Replace hardcoded in tutorial
 3. `7d7c867` - Update deploy_cloud_run_iam.sh (user)
+4. `710d362` - docs: Remove hardcoded from archived CSV guide
 
-**Status:** 100% genérico, sem project IDs hardcoded nos scripts principais! 🎉
+**Status:** 100% genérico em TODA a codebase - zero hardcoded project IDs! 🎉
