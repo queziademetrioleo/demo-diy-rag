@@ -217,11 +217,20 @@ RAW_DATA_PATH=raw_data/faq_example.csv
 PROJECT_ID=...  # Isso quebra o parser!
 ```
 
-**✅ FAÇA ASSIM:**
+**✅ FAÇA ASSIM (substitua com SEU project ID):**
 ```bash
-PROJECT_ID=teste-de-big-query-472216
+# Pegar seu PROJECT_ID com: gcloud config get-value project
+PROJECT_ID=seu-project-id-aqui
 LOCATION=us-central1
-BUCKET_NAME=teste-de-big-query-472216-data
+BUCKET_NAME=seu-project-id-aqui-data
+RAW_DATA_PATH=raw_data/faq_example.csv
+```
+
+**Exemplo (substitua pelos seus valores):**
+```bash
+PROJECT_ID=my-gcp-project-123456
+LOCATION=us-central1
+BUCKET_NAME=my-gcp-project-123456-data
 RAW_DATA_PATH=raw_data/faq_example.csv
 ```
 
