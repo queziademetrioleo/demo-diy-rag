@@ -69,10 +69,10 @@ class SimpleFAQSystem:
 
         # LLM configuration
         self.generation_config = GenerationConfig(
-            temperature=0.2,  # Lower temperature for more consistent answers
+            temperature=0.4,  # Lower temperature for more consistent answers - original 0.2
             top_p=0.8,
             top_k=40,
-            max_output_tokens=1024,
+            max_output_tokens=2048, # original 1024
         )
 
         logger.info("✅ FAQ system initialized (with LLM)!")
@@ -165,7 +165,7 @@ class SimpleFAQSystem:
 
         return embeddings_array
 
-    def create_knowledge_base(self):
+    def create_knowledge_base(self) -> None: #It indicates that the function is createad to execute an action and not to return an object
         """
         Create the knowledge base by generating embeddings for all questions.
 
@@ -185,8 +185,8 @@ class SimpleFAQSystem:
     def search(
         self,
         query: str,
-        top_k: int = 3,
-        threshold: float = 0.7
+        top_k: int = 5, # original 3
+        threshold: float = 0.7 #minimal score
     ) -> List[Dict]:
         """
         Search for questions similar to the query.
@@ -256,7 +256,7 @@ class SimpleFAQSystem:
         if not results:
             return {
                 'question_found': None,
-                'answer': "Sorry, I couldn't find an answer for that question.",
+                'answer': "Sorry, I couldn't find an answer for that question. Can you ask again in a different way?",
                 'score': 0.0,
                 'confidence': 'low',
                 'found': False
@@ -296,7 +296,7 @@ class SimpleFAQSystem:
                 'user_question': query,
                 'question_found': None,
                 'original_answer': None,
-                'generated_answer': "Sorry, I couldn't find relevant information about that question in our knowledge base.",
+                'generated_answer': "Sorry, I couldn't find relevant information about that question in our knowledge base. Can you ask again?",
                 'score': 0.0,
                 'confidence': 'low',
                 'found': False,
@@ -460,7 +460,7 @@ ANSWER:"""
         text = re.sub(r'\d{3}\.\d{3}\.\d{3}-\d{2}', '[ID_REMOVED]', text)
 
         # Limit size
-        max_chars = 2000
+        max_chars = 4000 # original 2000
         if len(text) > max_chars:
             text = text[:max_chars] + "... [response truncated]"
 
