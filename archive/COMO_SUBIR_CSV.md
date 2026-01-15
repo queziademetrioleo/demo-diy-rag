@@ -17,7 +17,7 @@
 - OU busque por "Storage" na barra de pesquisa
 
 **3. Encontrar seu Bucket:**
-- Procure o bucket: `teste-de-big-query-472216-data`
+- Procure o bucket: `seu-project-id-data`
 - Clique no nome do bucket
 
 **4. Navegar para a pasta:**
@@ -36,7 +36,7 @@
 
 ### **📊 Exemplo Visual:**
 ```
-Bucket: teste-de-big-query-472216-data
+Bucket: seu-project-id-data
   └── raw_data/
       └── meu_faq.csv  ← SEU ARQUIVO AQUI!
 ```
@@ -69,20 +69,20 @@ ls ~/*.csv
 **4. Copiar para o Bucket:**
 ```bash
 # Copiar para o bucket
-gsutil cp ~/meu_faq.csv gs://teste-de-big-query-472216-data/raw_data/
+gsutil cp ~/meu_faq.csv gs://seu-project-id-data/raw_data/
 
 # OU se preferir mover (apaga do Cloud Shell)
-gsutil mv ~/meu_faq.csv gs://teste-de-big-query-472216-data/raw_data/
+gsutil mv ~/meu_faq.csv gs://seu-project-id-data/raw_data/
 ```
 
 **5. Verificar no Bucket:**
 ```bash
-gsutil ls gs://teste-de-big-query-472216-data/raw_data/
+gsutil ls gs://seu-project-id-data/raw_data/
 ```
 
 **Deve mostrar:**
 ```
-gs://teste-de-big-query-472216-data/raw_data/meu_faq.csv
+gs://seu-project-id-data/raw_data/meu_faq.csv
 ```
 
 ✅ **Pronto! Arquivo no bucket!**
@@ -104,7 +104,7 @@ gcloud auth login
 
 **2. Configurar Projeto:**
 ```bash
-gcloud config set project teste-de-big-query-472216
+gcloud config set project seu-project-id
 ```
 
 **3. Upload Direto do PC:**
@@ -113,12 +113,12 @@ gcloud config set project teste-de-big-query-472216
 cd ~/Downloads  # ou onde seu CSV está
 
 # Upload direto para o bucket
-gsutil cp meu_faq.csv gs://teste-de-big-query-472216-data/raw_data/
+gsutil cp meu_faq.csv gs://seu-project-id-data/raw_data/
 ```
 
 **4. Verificar:**
 ```bash
-gsutil ls gs://teste-de-big-query-472216-data/raw_data/
+gsutil ls gs://seu-project-id-data/raw_data/
 ```
 
 ✅ **Arquivo no bucket!**
@@ -177,17 +177,17 @@ python simple_scripts/03_use_bucket.py
 **No Cloud Shell:**
 ```bash
 # Ver arquivos no bucket
-gsutil ls -r gs://teste-de-big-query-472216-data/
+gsutil ls -r gs://seu-project-id-data/
 
 # Deve mostrar:
-# gs://teste-de-big-query-472216-data/raw_data/meu_faq.csv
-# gs://teste-de-big-query-472216-data/embeddings/
-# gs://teste-de-big-query-472216-data/knowledge_base/
+# gs://seu-project-id-data/raw_data/meu_faq.csv
+# gs://seu-project-id-data/embeddings/
+# gs://seu-project-id-data/knowledge_base/
 ```
 
 **OU no Console:**
 - Vá para Cloud Storage
-- Abra bucket: `teste-de-big-query-472216-data`
+- Abra bucket: `seu-project-id-data`
 - Veja as pastas:
   - ✅ `raw_data/` → seu CSV
   - ✅ `embeddings/` → arquivos .npy
@@ -238,7 +238,7 @@ pergunta,resposta
 # Opção 1: Pelo Console (arrastar e soltar na pasta raw_data/)
 
 # Opção 2: Pelo Cloud Shell
-gsutil cp suporte_loja.csv gs://teste-de-big-query-472216-data/raw_data/
+gsutil cp suporte_loja.csv gs://seu-project-id-data/raw_data/
 ```
 
 ### **Configurar `.env`:**
@@ -266,7 +266,7 @@ python simple_scripts/03_use_bucket.py
 - Verificar se está no projeto correto:
   ```bash
   gcloud config get-value project
-  # Deve mostrar: teste-de-big-query-472216
+  # Deve mostrar: seu-project-id
   ```
 
 ### **"CSV format error"**
@@ -278,7 +278,7 @@ python simple_scripts/03_use_bucket.py
 - Conferir nome do arquivo em `.env`
 - Listar arquivos no bucket:
   ```bash
-  gsutil ls gs://teste-de-big-query-472216-data/raw_data/
+  gsutil ls gs://seu-project-id-data/raw_data/
   ```
 
 ---
